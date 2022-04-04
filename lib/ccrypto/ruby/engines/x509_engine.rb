@@ -22,6 +22,8 @@ module Ccrypto
 
         iss = cp.issuer_cert
 
+        iss = iss.nativeX509 if iss.is_a?(Ccrypto::X509Cert)
+
         if not_empty?(iss) 
           raise X509EngineException, "Issuer certificate must be X509 Certificate object" if not iss.is_a?(OpenSSL::X509::Certificate)
           cert.issuer = iss.subject
@@ -51,8 +53,8 @@ module Ccrypto
         end
 
         cert.add_extension(ext.create_extension("basicConstraints","CA:TRUE",true)) if cp.gen_issuer_cert?
-        cert.add_extension ext.create_extension("subjectKeyIdentifier","hash") if cp.gen_subj_key_id?
-        cert.add_extension ext.create_extension("authorityKeyIdentifier","keyid:always,issuer:always") if cp.gen_auth_key_id?
+        cert.add_extension(ext.create_extension("subjectKeyIdentifier","hash")) if cp.gen_subj_key_id?
+        cert.add_extension(ext.create_extension("authorityKeyIdentifier","keyid:always,issuer:always")) if cp.gen_auth_key_id?
 
         cert.add_extension(ext.create_extension("keyUsage",to_keyusage,true))
         extKeyUsage = to_extkeyusage
@@ -66,7 +68,9 @@ module Ccrypto
         cert.add_extension(ext.create_extension("crlDistributionPoints","URI:#{cp.crl_dist_point.join("URI:")}",false)) if not_empty?(cp.crl_dist_point)
         cert.add_extension(ext.create_extension("authorityInfoAccess","OCSP;URI:#{cp.ocsp_url.join("URI:")}",false)) if not_empty?(cp.ocsp_url)
 
-        cert.sign(issuerKey.private_key, DigestEngine.instance(cp.hashAlgo).native_instance)
+        res = cert.sign(issuerKey.private_key, DigestEngine.instance(cp.hashAlgo).native_instance)
+
+        Ccrypto::X509Cert.new(res)
 
       end
 

@@ -12,6 +12,7 @@ require_relative "ruby/version"
 require_relative 'provider'
 
 require_relative 'ruby/ext/secret_key'
+require_relative 'ruby/ext/x509_cert'
 
 module Ccrypto
   module Ruby
