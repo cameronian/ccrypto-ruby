@@ -4,7 +4,7 @@ require_relative '../data_conversion'
 module Ccrypto
   module Ruby
     class DigestEngine
-      include Ccrypto::DataConversion
+      include Ccrypto::Ruby::DataConversion
       include TR::CondUtils
       
       SupportedDigest = [

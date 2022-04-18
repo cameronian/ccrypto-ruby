@@ -1,6 +1,6 @@
 
 class DC
-  extend Ccrypto::DataConversion
+  extend Ccrypto::Ruby::DataConversion
 end
 
 RSpec.describe "HMAC on Ruby" do

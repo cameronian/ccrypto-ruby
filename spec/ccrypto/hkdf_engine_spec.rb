@@ -1,6 +1,6 @@
 
 class DC
-  extend Ccrypto::DataConversion
+  extend Ccrypto::Ruby::DataConversion
 end
 
 RSpec.describe "HKDF on Ruby" do
