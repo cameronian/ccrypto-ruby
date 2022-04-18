@@ -132,6 +132,9 @@ module Ccrypto
           }
           pass = block.call(:p12_pass)
           name = block.call(:p12_name) || "Ccrypto ECC "
+
+          raise KeypairEngineException, "Password must be given" if is_empty?(pass)
+
           res = OpenSSL::PKCS12.create(pass, name, @nativeKeypair, cert, ca)
           res.to_der
 
@@ -184,7 +187,7 @@ module Ccrypto
             raise KeypairEngineException, "block is required" if not block
             pass = block.call(:p12_pass)
             p12 = OpenSSL::PKCS12.new(bin, pass)
-            [ECCKeyBundle.new(p12.key), Ccrypto::X509Cert.new(p12.certificate), p12.ca_certs.collect { |c| Ccrypto::X509Cert.new(c) }]
+            [Ccrypto::Ruby::ECCKeyBundle.new(p12.key), Ccrypto::X509Cert.new(p12.certificate), p12.ca_certs.collect { |c| Ccrypto::X509Cert.new(c) }]
           end
         else
           raise KeypairEngineException, "Unsupported bin format #{bin}"
@@ -277,7 +280,13 @@ module Ccrypto
       end
 
       def self.verify(pubKey, val, sign)
-        res = pubKey.native_pubKey.dsa_verify_asn1(val, sign)
+        uPubKey = pubKey.native_pubKey
+        if pubKey.native_pubKey.is_a?(OpenSSL::PKey::EC::Point)
+          uPubKey = OpenSSL::PKey::EC.new(uPubKey.group)
+          uPubKey.public_key = pubKey.native_pubKey
+        end
+
+        res = uPubKey.dsa_verify_asn1(val, sign)
         res
       end
 
