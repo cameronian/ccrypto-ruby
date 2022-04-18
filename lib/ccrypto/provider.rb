@@ -22,6 +22,8 @@ require_relative 'ruby/engines/data_conversion_engine'
 
 require_relative 'ruby/engines/secret_sharing_engine'
 
+require_relative 'ruby/engines/pkcs7_engine'
+
 module Ccrypto
   module Ruby
     class Provider
@@ -71,6 +73,8 @@ module Ccrypto
             HMACEngine.new(*args, &block)
           when Ccrypto::SecretSharingConfig
             SecretSharingEngine.new(*args,&block)
+          when Ccrypto::PKCS7Config
+            PKCS7Engine.new(*args, &block)
           else
             raise CcryptoProviderException, "Config instance '#{config}' is not supported for provider '#{self.provider_name}'"
           end
