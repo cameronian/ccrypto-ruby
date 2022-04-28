@@ -37,7 +37,7 @@ module Ccrypto
         cert.not_after = cp.not_after
 
         case cp.public_key
-        when Ccrypto::Ruby::ECCPublicKey
+        when Ccrypto::PublicKey
           pubKey = cp.public_key.native_pubKey
         else
           raise X509EngineException, "Public key type '#{cp.public_key.class}' is not supported"

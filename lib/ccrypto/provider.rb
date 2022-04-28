@@ -24,6 +24,8 @@ require_relative 'ruby/engines/secret_sharing_engine'
 
 require_relative 'ruby/engines/pkcs7_engine'
 
+require_relative 'ruby/engines/rsa_engine'
+
 module Ccrypto
   module Ruby
     class Provider
@@ -38,6 +40,8 @@ module Ccrypto
         if config.is_a?(Class) or config.is_a?(Module)
           if config == Ccrypto::ECCConfig
             ECCEngine
+          elsif config == Ccrypto::RSAConfig
+            RSAEngine
           elsif config == Ccrypto::ECCKeyBundle
             ECCKeyBundle
           elsif config == Ccrypto::DigestConfig
@@ -59,6 +63,8 @@ module Ccrypto
           case config
           when Ccrypto::ECCConfig
             ECCEngine.new(*args, &block)
+          when Ccrypto::RSAConfig
+            RSAEngine.new(*args, &block)
           when Ccrypto::DigestConfig
             DigestEngine.instance(*args, &block)
           when Ccrypto::X509::CertProfile
