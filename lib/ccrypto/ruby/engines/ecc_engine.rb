@@ -225,8 +225,9 @@ module Ccrypto
       def equal?(kp)
         if kp.respond_to?(:to_der)
           @nativeKeypair.to_der == kp.to_der
-        else
-          false
+        else 
+          @nativeKeypair == kp
+          #false
         end
       end
 
