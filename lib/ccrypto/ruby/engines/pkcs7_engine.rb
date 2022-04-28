@@ -17,6 +17,10 @@ module Ccrypto
 
       def sign(val, outFormat = :bin, &block)
         validate_input(val, "signing") 
+        validate_key_must_exist("signing")
+        raise PKCS7EngineException, "signerCert is required for PKCS7 sign operation" if is_empty?(@config.signerCert)
+        raise PKCS7EngineException, "Given signerCert must be a Ccrypto::X509Cert object" if not @config.signerCert.is_a?(Ccrypto::X509Cert)
+
         privKey = @config.keybundle.private_key
 
         caCerts = []
@@ -36,7 +40,7 @@ module Ccrypto
           flag = OpenSSL::PKCS7::BINARY
         end
 
-        res = OpenSSL::PKCS7.sign(@config.x509_cert.nativeX509, privKey, val, caCerts, flag) 
+        res = OpenSSL::PKCS7.sign(@config.signerCert.nativeX509, privKey, val, caCerts, flag) 
         case outFormat
         when :b64
           to_b64(res.to_der)
@@ -66,14 +70,20 @@ module Ccrypto
         p7.certificates.each do |c|
           if block
             certVerified = block.call(:verify_certificate, c)
-            if certVerified
-              logger.debug "Certificate : #{c} accepted by application"
+            if is_empty?(certVerified)
+              logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application). Assumed good cert."
               store.add_cert(c)
+              certVerified = true
             else
-              logger.debug "Certificate : #{c} rejected by application"
+              if certVerified
+                logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} accepted by application"
+                store.add_cert(c)
+              else
+                logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} rejected by application"
+              end
             end
           else
-            logger.debug "Certificate : #{c} passed through (no checking by application)"
+            logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application)"
             store.add_cert(c)
           end
         end
@@ -81,14 +91,13 @@ module Ccrypto
         if certVerified
           
           if p7.detached?
-            logger.debug "Detached signature detected"
+            logger.debug "Detached signature detected during signature verification"
             raise PKCS7EngineException, "block is required for detached signature" if not block
-            data = block.call(:sign_data)
+            data = block.call(:signed_data)
             p7.data = data
           else
-            logger.debug "Attached signature detected"
+            logger.debug "Attached signature detected during signature verification"
           end
-
 
           res = p7.verify([], store, nil, OpenSSL::PKCS7::NOVERIFY)
 
@@ -109,20 +118,55 @@ module Ccrypto
 
       def encrypt(val, &block)
         validate_input(val, "encrypt") 
+        raise PKCS7EngineException, "At least one recipient_cert is required for PKCS7 encrypt" if is_empty?(@config.recipient_certs)
+        
+        recps = @config.recipient_certs.map do |c|
+          raise PKCS7EngineException, "Given recipient_cert must be a Ccrypto::X509Cert object" if not c.is_a?(Ccrypto::X509Cert)
+          c.nativeX509
+        end
+
+        if block
+          cipher = block.call(:cipher)
+          logger.debug "Application given cipher : #{cipher}"
+        end
+
+        cipher = "AES-256-CBC" if is_empty?(cipher)
+
+        cip = OpenSSL::Cipher.new(cipher)
+
+        begin
+          OpenSSL::PKCS7.encrypt(recps, val, cip, OpenSSL::PKCS7::BINARY)
+        rescue OpenSSL::PKCS7::PKCS7Error => ex
+          raise PKCS7EngineException, ex
+        end
+
       end
 
       def decrypt(val, &block)
         validate_input(val, "decrypt") 
+        validate_key_must_exist("decrypt")
+
+        raise PKCS7EngineException, "certForDecryption is required for PKCS7 decrypt operation" if is_empty?(@config.certForDecryption)
+        raise PKCS7EngineException, "Given certForDecryption must be a Ccrypto::X509Cert object" if not @config.certForDecryption.is_a?(Ccrypto::X509Cert)
+
+        p7 = OpenSSL::PKCS7.new(val)
+        p7.decrypt(@config.keybundle.private_key, @config.certForDecryption.nativeX509)
       end
 
       protected
       def validate_input(val, ops)
         raise PKCS7EngineException, "Given data to #{ops} operation is empty" if is_empty?(val) 
-        raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
-        raise PKCS7EngineException, "X509_cert is required for PKCS7 #{ops}" if is_empty?(@config.x509_cert)
-        raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
-        raise PKCS7EngineException, "Given x509_cert must be a Ccrypto::X509Cert object" if not @config.x509_cert.is_a?(Ccrypto::X509Cert)
       end
+
+      def validate_key_must_exist(ops)
+        raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
+        raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
+      end
+
+      #def validate_cert_must_exist(ops)
+      #  raise PKCS7EngineException, "signerCert is required for PKCS7 #{ops}" if is_empty?(@config.signerCert)
+      #  raise PKCS7EngineException, "Given signerCert must be a Ccrypto::X509Cert object" if not @config.signerCert.is_a?(Ccrypto::X509Cert)
+      #end
 
       private
       def logger
