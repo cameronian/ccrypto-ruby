@@ -78,7 +78,7 @@ RSpec.describe "X509 engine spec for Ruby" do
   end
 
 
-  it 'generates X.509 certificates tree and store in P12 file' do
+  it 'generates ECC, X.509 certificates tree and store in P12 file' do
     require 'ccrypto/ruby'
 
     ecc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig.new)
@@ -282,7 +282,7 @@ RSpec.describe "X509 engine spec for Ruby" do
     kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCKeyBundle)
     expect {
       rkp = kpfc.from_storage(File.read("enduser.p12"))
-    }.to raise_exception(Ccrypto::KeypairEngineException)
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
 
     rkp,rcert,rchain = kpfc.from_storage(File.read("enduser.p12")) do |key|
       case key
@@ -291,6 +291,232 @@ RSpec.describe "X509 engine spec for Ruby" do
       end
     end
     expect(rkp != nil).to be true
+    p rkp
+    p subscriber
+    expect(rkp.equal?(subscriber)).to be true
+    expect(rcert.equal?(userCert)).to be true
+
+    rchain.each do |cc|
+      expect((cc.equal?(rootCert) or cc.equal?(subCACert) or cc.equal?(leafCACert))).to be true
+    end
+
+  end
+
+  it 'generates RSA, X.509 certificates tree and store in P12 file' do
+    require 'ccrypto/ruby'
+
+    ecc = Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig.new)
+    root = ecc.generate_keypair
+
+    prof = Ccrypto::X509::CertProfile.new
+    prof.owner_name = "Root CA RSA"
+    prof.org = "Cameron"
+
+    prof.org_unit = ["Solutioning","id=jasjdf"]
+    prof.dns_name = "https://asdf.com"
+    prof.email = "Root.CA-RSA@cameronion.com"
+
+    prof.key_usage.enable_digitalSignature.enable_nonRepudiation.enable_keyCertSign.enable_crlSign
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth
+
+    prof.gen_issuer_cert = true
+    prof.gen_subj_key_id = true
+    prof.gen_auth_key_id = true
+    prof.public_key = root.public_key
+
+    fact = Ccrypto::AlgoFactory.engine(prof)
+    expect(fact).not_to be nil
+
+    rootCert = fact.generate(root)
+    expect(rootCert).not_to be nil
+    expect(rootCert.is_a?(Ccrypto::X509Cert)).to be true
+
+    File.open("root-rsa.crt","wb") do |f|
+      f.write rootCert.to_der
+    end
+
+    File.open("root-rsa.p12","wb") do |f|
+      ksb = root.to_storage(:p12) do |key|
+        case key
+        when :cert
+          rootCert
+        when :certchain
+          [rootCert]
+        when :p12_pass
+          "password"
+        when :p12_name
+          "Test Root CA RSA"
+        end
+      end
+
+      f.write ksb
+    end
+
+    puts "Root CA RSA Cert Generated"
+
+    subCA = ecc.generate_keypair
+
+    prof = Ccrypto::X509::CertProfile.new
+    prof.owner_name = "Sub CA RSA"
+    prof.org = "Cameron"
+
+    prof.org_unit = ["Solutioning","id=jasjdf"]
+    prof.dns_name = "https://asdf.com"
+    prof.email = "Sub.CA-RSA@cameronion.com"
+
+    prof.key_usage.enable_digitalSignature.enable_nonRepudiation.enable_keyCertSign.enable_crlSign
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth
+
+    prof.gen_issuer_cert = true
+    prof.gen_subj_key_id = true
+    prof.gen_auth_key_id = true
+
+    prof.issuer_cert = rootCert
+    prof.public_key = subCA.public_key
+
+    fact = Ccrypto::AlgoFactory.engine(prof)
+    expect(fact).not_to be nil
+
+    subCACert = fact.generate(root)
+    expect(subCACert).not_to be nil
+    expect(subCACert.is_a?(Ccrypto::X509Cert)).to be true
+
+    File.open("sub-ca-rsa.crt","wb") do |f|
+      f.write subCACert.to_der
+    end
+
+    File.open("sub-ca-rsa.p12","wb") do |f|
+      ksb = subCA.to_storage(:p12) do |key|
+        case key
+        when :cert
+          subCACert
+        when :certchain
+          [rootCert,subCACert]
+        when :p12_pass
+          "password"
+        when :p12_name
+          "Test Sub CA RSA"
+        end
+      end
+
+      f.write ksb
+    end
+
+    puts "Sub CA RSA Certificate generated"
+
+    leafCA = ecc.generate_keypair
+    prof = Ccrypto::X509::CertProfile.new
+    prof.owner_name = "Operational CA RSA"
+    prof.org = "Cameron"
+
+    prof.org_unit = ["Solutioning","id=jasjdf"]
+    prof.dns_name = "https://asdf.com"
+    prof.email = "Ops.CA-RSA@cameronion.com"
+
+    prof.key_usage.enable_digitalSignature.enable_nonRepudiation.enable_keyCertSign.enable_crlSign
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth
+
+    prof.gen_issuer_cert = true
+    prof.gen_subj_key_id = true
+    prof.gen_auth_key_id = true
+
+    prof.issuer_cert = subCACert
+    prof.public_key = leafCA.public_key
+
+    fact = Ccrypto::AlgoFactory.engine(prof)
+    expect(fact).not_to be nil
+
+    leafCACert = fact.generate(subCA)
+    expect(leafCACert).not_to be nil
+    expect(leafCACert.is_a?(Ccrypto::X509Cert)).to be true
+
+    File.open("ops-ca-rsa.crt","wb") do |f|
+      f.write leafCACert.to_der
+    end
+
+    File.open("ops-ca-rsa.p12","wb") do |f|
+      ksb = leafCA.to_storage(:p12) do |key|
+        case key
+        when :cert
+          leafCACert
+        when :certchain
+          [rootCert,subCACert,leafCACert]
+        when :p12_pass
+          "password"
+        when :p12_name
+          "Test Operational CA RSA"
+        end
+      end
+
+      f.write ksb
+    end
+
+    puts "Operational CA RSA Certificate generated"
+
+
+    subscriber = ecc.generate_keypair
+    prof = Ccrypto::X509::CertProfile.new
+    prof.owner_name = "Subscriber RSA"
+    prof.org = "Cameron"
+
+    prof.org_unit = ["Solutioning","id=jasjdf"]
+    prof.dns_name = "https://asdf.com"
+    prof.email = "Subscriber-RSA@cameronion.com"
+
+    prof.key_usage.enable_digitalSignature.enable_nonRepudiation
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth
+
+    prof.gen_issuer_cert = false
+    prof.gen_subj_key_id = true
+    prof.gen_auth_key_id = true
+
+    prof.issuer_cert = leafCACert
+    prof.public_key = subscriber.public_key
+
+    fact = Ccrypto::AlgoFactory.engine(prof)
+    expect(fact).not_to be nil
+
+    userCert = fact.generate(leafCA)
+    expect(userCert).not_to be nil
+    expect(userCert.is_a?(Ccrypto::X509Cert)).to be true
+
+    File.open("enduser-rsa.crt","wb") do |f|
+      f.write userCert.to_der
+    end
+
+    File.open("enduser-rsa.p12","wb") do |f|
+      ksb = subscriber.to_storage(:p12) do |key|
+        case key
+        when :cert
+          userCert
+        when :certchain
+          [rootCert,subCACert,leafCACert]
+        when :p12_pass
+          "password"
+        when :p12_name
+          "Test End User Certificate RSA"
+        end
+      end
+
+      f.write ksb
+    end
+
+    puts "User RSA Certificate generated"
+
+    kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCKeyBundle)
+    expect {
+      rkp = kpfc.from_storage(File.read("enduser-rsa.p12"))
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
+
+    rkp,rcert,rchain = kpfc.from_storage(File.read("enduser-rsa.p12")) do |key|
+      case key
+      when :p12_pass
+        "password"
+      end
+    end
+    expect(rkp != nil).to be true
+    p rkp
+    p subscriber
     expect(rkp.equal?(subscriber)).to be true
     expect(rcert.equal?(userCert)).to be true
 

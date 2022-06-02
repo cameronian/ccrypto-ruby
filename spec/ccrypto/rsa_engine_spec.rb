@@ -12,60 +12,60 @@ RSpec.describe "RSA Engine Spec" do
 
   end
 
-  #it 'store to PEM format' do
-  #  
-  #  kpf = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig.new("secp256k1"))
-  #  kp = kpf.generate_keypair
-  #  expect(kp != nil).to be true
-  #  expect(kp.is_a?(Ccrypto::KeyBundle)).to be true
+  it 'store to PEM format' do
+    
+    kpf = Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig.new(2048))
+    kp = kpf.generate_keypair
+    expect(kp != nil).to be true
+    expect(kp.is_a?(Ccrypto::KeyBundle)).to be true
 
-  #  # no password
-  #  pem = kp.to_storage(:pem)
-  #  expect(pem != nil).to be true
+    # no password
+    pem = kp.to_storage(:pem)
+    expect(pem != nil).to be true
 
-  #  kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCKeyBundle)
-  #  rkp = kpfc.from_storage(pem)
-  #  expect(rkp != nil).to be true
-  #  expect(rkp.equal?(kp)).to be true
+    kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::RSAKeyBundle)
+    rkp = kpfc.from_storage(pem)
+    expect(rkp != nil).to be true
+    expect(rkp.equal?(kp)).to be true
 
-  #  # with password
-  #  spem = kp.to_storage(:pem) do |key|
-  #    case key
-  #    when :pem_cipher
-  #      # default is AES-256-GCM
-  #      "AES-256-CBC"
-  #    when :pem_pass
-  #      "p@ssw0rd"
-  #    end
-  #  end
-  #  expect(spem != nil).to be true
+    # with password
+    spem = kp.to_storage(:pem) do |key|
+      case key
+      when :pem_cipher
+        # default is AES-256-GCM
+        "AES-256-CBC"
+      when :pem_pass
+        "p@ssw0rd"
+      end
+    end
+    expect(spem != nil).to be true
 
 
-  #  kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCKeyBundle)
-  #  expect {
-  #    # no password (block) is given
-  #    rkp = kpfc.from_storage(spem) 
-  #  }.to raise_exception(Ccrypto::KeypairEngineException)
+    kpfc = Ccrypto::AlgoFactory.engine(Ccrypto::RSAKeyBundle)
+    expect {
+      # no password (block) is given
+      rkp = kpfc.from_storage(spem) 
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
 
-  #  rkp2 = kpfc.from_storage(spem) do |key|
-  #    case key
-  #    when :pem_pass
-  #      "p@ssw0rd"
-  #    end
-  #  end
-  #  expect(rkp2.equal?(kp)).to be true
+    rkp2 = kpfc.from_storage(spem) do |key|
+      case key
+      when :pem_pass
+        "p@ssw0rd"
+      end
+    end
+    expect(rkp2.equal?(kp)).to be true
 
-  #  # password is wrong
-  #  expect {
-  #    rkp = kpfc.from_storage(spem) do |key|
-  #      case key
-  #      when :pem_pass
-  #        ""
-  #      end
-  #    end
-  #  }.to raise_exception(Ccrypto::KeypairEngineException)
+    # password is wrong
+    expect {
+      rkp = kpfc.from_storage(spem) do |key|
+        case key
+        when :pem_pass
+          ""
+        end
+      end
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
 
-  #end
+  end
 
   it 'sign & verify data with RSA keypair' do
 

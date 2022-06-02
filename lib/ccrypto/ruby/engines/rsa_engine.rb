@@ -1,4 +1,6 @@
 
+require_relative '../keybundle_store/pkcs12'
+require_relative '../keybundle_store/pem_store'
 
 module Ccrypto
   module Ruby
@@ -24,6 +26,9 @@ module Ccrypto
       include Ccrypto::RSAKeyBundle
       include TR::CondUtils
 
+      include PKCS12Store
+      include PEMStore
+
       def initialize(kp)
         @nativeKeypair = kp
       end
@@ -40,6 +45,83 @@ module Ccrypto
           @privKey = @nativeKeypair
         end
         @privKey
+      end
+
+      def to_storage(format, &block)
+        case format
+        when :pkcs12, :p12
+          to_pkcs12 do |key|
+            case key
+            when :keypair
+              @nativeKeypair
+            else
+              block.call(key) if block
+            end
+          end
+        when :pem 
+          to_pem do |key|
+            case key
+            when :keypair
+              @nativeKeypair
+            else
+              block.call(key) if block
+            end
+          end
+        else
+          raise KeyBundleStorageException, "Unknown storage format #{format}"
+        end
+       
+      end
+
+      def self.from_storage(bin, &block)
+        raise KeypairEngineException, "Given data to load is empty" if is_empty?(bin)
+
+        case bin
+        when String
+          logger.debug "Given String to load from storage" 
+          if is_pem?(bin)
+            self.from_pem(bin, &block)
+          else
+            # binary buffer
+            logger.debug "Given binary to load from storage" 
+            self.from_pkcs12(bin,&block)
+          end
+        else
+          raise KeyBundleStorageException, "Unsupported input type #{bin}"
+        end
+
+      end
+
+      def self.logger
+        if @logger.nil?
+          @logger = Tlogger.new
+          @logger.tag = :ecc_keybundle
+        end
+        @logger
+      end
+      def logger
+        self.class.logger
+      end
+
+      def equal?(kp)
+        if kp.respond_to?(:to_der)
+          @nativeKeypair.to_der == kp.to_der
+        else
+          @nativeKeypair == kp
+        end
+      end
+
+      def method_missing(mtd, *args, &block)
+        if @nativeKeypair.respond_to?(mtd)
+          logger.debug "Sending to nativeKeypair #{mtd}"
+          @nativeKeypair.send(mtd,*args, &block)
+        else
+          super
+        end
+      end
+
+      def respond_to_missing?(mtd, *args, &block)
+        @nativeKeypair.respond_to?(mtd)
       end
 
     end # RSAKeyBundle

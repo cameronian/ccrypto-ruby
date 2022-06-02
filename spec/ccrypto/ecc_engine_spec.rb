@@ -62,7 +62,7 @@ RSpec.describe "ECC Engine Spec" do
     expect {
       # no password (block) is given
       rkp = kpfc.from_storage(spem) 
-    }.to raise_exception(Ccrypto::KeypairEngineException)
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
 
     rkp2 = kpfc.from_storage(spem) do |key|
       case key
@@ -80,9 +80,15 @@ RSpec.describe "ECC Engine Spec" do
           ""
         end
       end
-    }.to raise_exception(Ccrypto::KeypairEngineException)
+    }.to raise_exception(Ccrypto::KeyBundleStorageException)
 
   end
+
+  # this test case is done ine X509 engine
+  #it 'store to P12 format' do
+  #  
+  #end
+
 
   it 'sign data with ECC keypair' do
 
