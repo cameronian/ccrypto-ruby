@@ -68,7 +68,16 @@ module Ccrypto
         cert.add_extension(ext.create_extension("crlDistributionPoints","URI:#{cp.crl_dist_point.join("URI:")}",false)) if not_empty?(cp.crl_dist_point)
         cert.add_extension(ext.create_extension("authorityInfoAccess","OCSP;URI:#{cp.ocsp_url.join("URI:")}",false)) if not_empty?(cp.ocsp_url)
 
-        res = cert.sign(issuerKey.private_key, DigestEngine.instance(cp.hashAlgo).native_instance)
+        case issuerKey
+        when Ccrypto::KeyBundle
+          privKey = issuerKey.private_key.native_privKey
+        when Ccrypto::PrivateKey
+          privKey = issuerKey.native_privKey
+        else
+          raise X509EngineException, "Unsupported issuer key #{issuerKey}"
+        end
+
+        res = cert.sign(privKey, DigestEngine.instance(cp.hashAlgo).native_instance)
 
         Ccrypto::X509Cert.new(res)
 

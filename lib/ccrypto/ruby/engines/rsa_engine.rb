@@ -16,10 +16,6 @@ module Ccrypto
         RSAPublicKey.new(rk)
       end
 
-      def method_missing(mtd, *args, &block)
-        @native_pubKey.send(mtd, *args, &block)
-      end
-
     end # RSAPublicKey
 
     class RSAKeyBundle 
@@ -42,7 +38,7 @@ module Ccrypto
 
       def private_key
         if @privKey.nil?
-          @privKey = @nativeKeypair
+          @privKey = Ccrypto::RSAPrivateKey.new(@nativeKeypair)
         end
         @privKey
       end
@@ -141,12 +137,10 @@ module Ccrypto
 
       def sign(val, &block)
         
-        raise KeypairEngineException, "Keypair is required" if @config.keypair.nil?
-        raise KeypairEngineException, "RSA keypair is required" if not @config.keypair.is_a?(RSAKeyBundle)
+        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
+        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
 
-        kp = @config.keypair
-
-        privKey = kp.private_key
+        privKey = @config.private_key
 
         signHash = "sha256"
         if block
@@ -165,12 +159,10 @@ module Ccrypto
 
       def sign_pss(val, &block)
         
-        raise KeypairEngineException, "Keypair is required" if @config.keypair.nil?
-        raise KeypairEngineException, "RSA keypair is required" if not @config.keypair.is_a?(RSAKeyBundle)
+        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
+        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
 
-        kp = @config.keypair
-
-        privKey = kp.private_key
+        privKey = @config.private_key
 
         signHash = "sha256"
         mgf1Hash = "sha256"
@@ -184,7 +176,7 @@ module Ccrypto
         saltLen = :max if is_empty?(saltLen)
         signHash = "sha256" if is_empty?(signHash)
 
-        privKey.sign_pss(signHash, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
+        privKey.native_privKey.sign_pss(signHash, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
 
       end
 
@@ -253,8 +245,8 @@ module Ccrypto
 
       def decrypt(enc, &block)
 
-        raise KeypairEngineException, "Keypair is required" if @config.keypair.nil?
-        raise KeypairEngineException, "RSA keypair is required" if not @config.keypair.is_a?(RSAKeyBundle)
+        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
+        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
 
         padding = :oaep
         if block
@@ -272,8 +264,7 @@ module Ccrypto
           raise KeypairEngineException, "Padding requires either :pkcs1 or :oaep. Default is :oaep"
         end
 
-        kp = @config.keypair
-        kp.private_key.private_decrypt(enc, padVal)
+        @config.private_key.private_decrypt(enc, padVal)
       end
 
     end

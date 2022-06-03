@@ -30,7 +30,7 @@ RSpec.describe "X509 engine spec for Ruby" do
     fact = Ccrypto::AlgoFactory.engine(prof)
     expect(fact).not_to be nil
 
-    c = fact.generate(kp)
+    c = fact.generate(kp.private_key)
     expect(c).not_to be nil
     expect(c.is_a?(Ccrypto::X509Cert)).to be true
 

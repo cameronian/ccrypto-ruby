@@ -52,11 +52,12 @@ RSpec.describe "Test PKCS7" do
     prof.public_key = kp.public_key
 
     fact = Ccrypto::AlgoFactory.engine(prof)
-    cert = fact.generate(kp)
+    cert = fact.generate(kp.private_key)
 
    
     conf = Ccrypto::PKCS7Config.new
-    conf.keybundle = kp
+    #conf.keybundle = kp
+    conf.private_key = kp.private_key
     conf.signerCert = cert
 
     p7 = Ccrypto::AlgoFactory.engine(conf)
@@ -106,7 +107,8 @@ RSpec.describe "Test PKCS7" do
 
 
     conf = Ccrypto::PKCS7Config.new
-    conf.keybundle = kp
+    #conf.keybundle = kp
+    conf.private_key = kp.private_key
     conf.signerCert = cert
 
     p7 = Ccrypto::AlgoFactory.engine(conf)
@@ -197,7 +199,7 @@ RSpec.describe "Test PKCS7" do
     prof.public_key = kp.public_key
 
     fact = Ccrypto::AlgoFactory.engine(prof)
-    cert = fact.generate(kp)
+    cert = fact.generate(kp.private_key)
 
     conf = Ccrypto::PKCS7Config.new
     conf.add_recipient_cert(cert)
@@ -210,7 +212,8 @@ RSpec.describe "Test PKCS7" do
     expect(enc).not_to be nil
 
     dconf = Ccrypto::PKCS7Config.new
-    dconf.keybundle = kp
+    #dconf.keybundle = kp
+    dconf.private_key = kp.private_key
     dconf.certForDecryption = cert
     dp7 = Ccrypto::AlgoFactory.engine(dconf)
     dec = dp7.decrypt(enc)

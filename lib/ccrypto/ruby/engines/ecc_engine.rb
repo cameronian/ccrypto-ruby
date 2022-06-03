@@ -69,7 +69,7 @@ module Ccrypto
       end
 
       def private_key
-        @nativeKeypair
+        ECCPrivateKey.new(@nativeKeypair)
       end
 
       def derive_dh_shared_secret(pubKey)

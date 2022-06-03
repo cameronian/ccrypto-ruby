@@ -21,7 +21,7 @@ module Ccrypto
         raise PKCS7EngineException, "signerCert is required for PKCS7 sign operation" if is_empty?(@config.signerCert)
         raise PKCS7EngineException, "Given signerCert must be a Ccrypto::X509Cert object" if not @config.signerCert.is_a?(Ccrypto::X509Cert)
 
-        privKey = @config.keybundle.private_key
+        privKey = @config.private_key.native_privKey
 
         caCerts = []
         attached = true
@@ -150,7 +150,7 @@ module Ccrypto
         raise PKCS7EngineException, "Given certForDecryption must be a Ccrypto::X509Cert object" if not @config.certForDecryption.is_a?(Ccrypto::X509Cert)
 
         p7 = OpenSSL::PKCS7.new(val)
-        p7.decrypt(@config.keybundle.private_key, @config.certForDecryption.nativeX509)
+        p7.decrypt(@config.private_key.native_privKey, @config.certForDecryption.nativeX509)
       end
 
       protected
@@ -159,8 +159,10 @@ module Ccrypto
       end
 
       def validate_key_must_exist(ops)
-        raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
-        raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
+        #raise PKCS7EngineException, "Keybundle is required for PKCS7 #{ops}" if is_empty?(@config.keybundle)
+        #raise PKCS7EngineException, "Given key must be a Ccrypto::KeyBundle object" if not @config.keybundle.is_a?(Ccrypto::KeyBundle)
+        raise PKCS7EngineException, "Private key is required for PKCS7 #{ops}" if is_empty?(@config.private_key)
+        raise PKCS7EngineException, "Given private key must be a Ccrypto::PrivateKey object" if not @config.private_key.is_a?(Ccrypto::PrivateKey)
       end
 
       #def validate_cert_must_exist(ops)

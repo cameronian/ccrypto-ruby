@@ -73,7 +73,7 @@ RSpec.describe "RSA Engine Spec" do
     kpf = Ccrypto::AlgoFactory.engine(conf)
     kp = kpf.generate_keypair
 
-    conf.keypair = kp
+    conf.private_key = kp.private_key
     data_to_be_signed = "testing 123" * 128
     res = kpf.sign(data_to_be_signed)
     expect(res).not_to be nil
@@ -106,7 +106,7 @@ RSpec.describe "RSA Engine Spec" do
     kpf = Ccrypto::AlgoFactory.engine(conf)
     kp = kpf.generate_keypair
 
-    conf.keypair = kp
+    conf.private_key = kp.private_key
 
     # this is the max for oaep padding or it will hit data too large for keysize error
     # 8 * 26 = 208 + 6 = 214 bytes == 1712 bits. 
