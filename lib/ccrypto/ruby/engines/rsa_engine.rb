@@ -136,90 +136,34 @@ module Ccrypto
       end
 
       def sign(val, &block)
-        
-        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
-        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
-
-        privKey = @config.private_key
-
-        signHash = "sha256"
         if block
-          signHash = block.call(:sign_hash)
+          pss = block.call(:pss_mode)
+          pss = false if is_empty?(pss) or not is_bool?(pss)
+
+          if pss
+            sign_pss(val, &block)
+          else
+            sign_typical(val, &block)
+          end
+        else
+          sign_typical(val, &block)
         end
-
-        begin
-          shash = OpenSSL::Digest.new(signHash)
-        rescue Exception => ex
-          raise KeypairEngineException, ex
-        end
-
-        privKey.sign(shash, val)
-
       end
-
-      def sign_pss(val, &block)
-        
-        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
-        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
-
-        privKey = @config.private_key
-
-        signHash = "sha256"
-        mgf1Hash = "sha256"
-        saltLen = :max
-        if block
-          signHash = block.call(:sign_hash)
-          mgf1Hash = block.call("mgf1_hash")
-          saltLen = block.call("salt_length")
-        end
-        mgf1Hash = "sha256" if is_empty?(mgf1Hash)
-        saltLen = :max if is_empty?(saltLen)
-        signHash = "sha256" if is_empty?(signHash)
-
-        privKey.native_privKey.sign_pss(signHash, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
-
-      end
-
 
       def self.verify(pubKey, val, sign, &block)
-        uPubKey = pubKey.native_pubKey
-
-        signHash = "sha256"
         if block
-          signHash = block.call(:sign_hash)
-        end
+          pss = block.call(:pss_mode)
+          pss = false if is_empty?(pss) or not is_bool?(pss)
 
-        begin
-          shash = OpenSSL::Digest.new(signHash)
-        rescue Exception => ex
-          raise KeypairEngineException, ex
+          if pss
+            verify_pss(pubKey, val, sign, &block)
+          else
+            verify_typical(pubKey, val, sign, &block)
+          end
+        else
+          verify_typical(pubKey, val, sign, &block)
         end
-
-        res = uPubKey.verify(shash, sign, val)
-        res
-        
       end
-
-      def self.verify_pss(pubKey, val, sign, &block)
-        uPubKey = pubKey.native_pubKey
-
-        signHash = "sha256"
-        mgf1Hash = "sha256"
-        saltLen = :auto
-        if block
-          signHash = block.call(:sign_hash)
-          mgf1Hash = block.call("mgf1_hash")
-          saltLen = block.call("salt_length")
-        end
-        mgf1Hash = "sha256" if is_empty?(mgf1Hash)
-        saltLen = :auto if is_empty?(saltLen)
-        signHash = "sha256" if is_empty?(signHash)
-
-        res = uPubKey.verify_pss(signHash, sign, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
-        res
-        
-      end
-
 
       def self.encrypt(pubKey, val, &block)
         raise KeypairEngineException, "Public key is required" if is_empty?(pubKey)
@@ -266,6 +210,96 @@ module Ccrypto
 
         @config.private_key.private_decrypt(enc, padVal)
       end
+
+
+
+      #####################
+      ## Private section ##
+      private
+      def sign_typical(val, &block)
+        
+        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
+        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
+
+        privKey = @config.private_key
+
+        signHash = "sha256"
+        if block
+          signHash = block.call(:sign_hash)
+        end
+
+        begin
+          shash = OpenSSL::Digest.new(signHash)
+        rescue Exception => ex
+          raise KeypairEngineException, ex
+        end
+
+        privKey.sign(shash, val)
+
+      end
+
+      def sign_pss(val, &block)
+        
+        raise KeypairEngineException, "Private key is required" if not @config.has_private_key? 
+        raise KeypairEngineException, "RSA private key is required" if not @config.private_key.is_a?(RSAPrivateKey)
+
+        privKey = @config.private_key
+
+        signHash = "sha256"
+        mgf1Hash = "sha256"
+        saltLen = :max
+        if block
+          signHash = block.call(:sign_hash)
+          mgf1Hash = block.call("mgf1_hash")
+          saltLen = block.call("salt_length")
+        end
+        mgf1Hash = "sha256" if is_empty?(mgf1Hash)
+        saltLen = :max if is_empty?(saltLen)
+        signHash = "sha256" if is_empty?(signHash)
+
+        privKey.native_privKey.sign_pss(signHash, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
+
+      end
+
+      def self.verify_typical(pubKey, val, sign, &block)
+        uPubKey = pubKey.native_pubKey
+
+        if block
+          signHash = block.call(:sign_hash)
+        end
+        signHash = "sha256" if is_empty?(signHash)
+
+        begin
+          shash = OpenSSL::Digest.new(signHash)
+        rescue Exception => ex
+          raise KeypairEngineException, ex
+        end
+
+        res = uPubKey.verify(shash, sign, val)
+        res
+        
+      end
+
+      def self.verify_pss(pubKey, val, sign, &block)
+        uPubKey = pubKey.native_pubKey
+
+        signHash = "sha256"
+        mgf1Hash = "sha256"
+        saltLen = :auto
+        if block
+          signHash = block.call(:sign_hash)
+          mgf1Hash = block.call("mgf1_hash")
+          saltLen = block.call("salt_length")
+        end
+        mgf1Hash = "sha256" if is_empty?(mgf1Hash)
+        saltLen = :auto if is_empty?(saltLen)
+        signHash = "sha256" if is_empty?(signHash)
+
+        res = uPubKey.verify_pss(signHash, sign, val, salt_length: saltLen, mgf1_hash: mgf1Hash)
+        res
+        
+      end
+
 
     end
 

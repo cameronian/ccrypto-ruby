@@ -90,12 +90,27 @@ RSpec.describe "RSA Engine Spec" do
     vres = Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig).verify(kp.public_key, data_to_be_signed, res)
     expect(vres).to be true
 
-    expect(Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig).verify_pss(kp.public_key, data_to_be_signed, res)).to be false
+    expect(Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig).verify(kp.public_key, data_to_be_signed, res) do |k|
+      case k
+      when :pss_mode
+        true
+      end
+    end).to be false
 
-    res2 = kpf.sign_pss(data_to_be_signed)
+    res2 = kpf.sign(data_to_be_signed) do |k|
+      case k
+      when :pss_mode
+        true
+      end
+    end
     expect(res2).not_to be nil
 
-    vres2 = Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig).verify_pss(kp.public_key, data_to_be_signed, res2)
+    vres2 = Ccrypto::AlgoFactory.engine(Ccrypto::RSAConfig).verify(kp.public_key, data_to_be_signed, res2) do |k|
+      case k
+      when :pss_mode
+        true
+      end
+    end
     expect(vres2).to be true
     
   end
