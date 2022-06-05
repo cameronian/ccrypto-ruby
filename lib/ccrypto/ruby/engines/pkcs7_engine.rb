@@ -10,6 +10,10 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_p7
+
       def initialize(config)
         @config = config
         raise PKCS7EngineException, "Ccrypto::PKCS7Config is expected" if not @config.is_a?(Ccrypto::PKCS7Config)
@@ -71,19 +75,19 @@ module Ccrypto
           if block
             certVerified = block.call(:verify_certificate, c)
             if is_empty?(certVerified)
-              logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application). Assumed good cert."
+              teLogger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application). Assumed good cert."
               store.add_cert(c)
               certVerified = true
             else
               if certVerified
-                logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} accepted by application"
+                teLogger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} accepted by application"
                 store.add_cert(c)
               else
-                logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} rejected by application"
+                teLogger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} rejected by application"
               end
             end
           else
-            logger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application)"
+            teLogger.debug "Certificate with subject #{c.subject.to_s} / Issuer: #{c.issuer.to_s} / SN: #{c.serial.to_s(16)} passed through (no checking by application)"
             store.add_cert(c)
           end
         end
@@ -91,12 +95,12 @@ module Ccrypto
         if certVerified
           
           if p7.detached?
-            logger.debug "Detached signature detected during signature verification"
+            teLogger.debug "Detached signature detected during signature verification"
             raise PKCS7EngineException, "block is required for detached signature" if not block
             data = block.call(:signed_data)
             p7.data = data
           else
-            logger.debug "Attached signature detected during signature verification"
+            teLogger.debug "Attached signature detected during signature verification"
           end
 
           res = p7.verify([], store, nil, OpenSSL::PKCS7::NOVERIFY)
@@ -127,7 +131,7 @@ module Ccrypto
 
         if block
           cipher = block.call(:cipher)
-          logger.debug "Application given cipher : #{cipher}"
+          teLogger.debug "Application given cipher : #{cipher}"
         end
 
         cipher = "AES-256-CBC" if is_empty?(cipher)
@@ -170,14 +174,6 @@ module Ccrypto
       #  raise PKCS7EngineException, "Given signerCert must be a Ccrypto::X509Cert object" if not @config.signerCert.is_a?(Ccrypto::X509Cert)
       #end
 
-      private
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :pkcs7_engine
-        end
-        @logger
-      end
     end
   end
 end

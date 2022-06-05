@@ -6,6 +6,10 @@ module Ccrypto
     class DigestEngine
       include Ccrypto::Ruby::DataConversion
       include TR::CondUtils
+
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_digest
       
       SupportedDigest = [
         Ccrypto::SHA1.provider_info("sha1"),
@@ -47,32 +51,21 @@ module Ccrypto
       def self.instance(*args, &block)
         conf = args.first
         if not_empty?(conf.provider_config)
-          logger.debug "Creating digest engine #{conf.provider_config}"
+          teLogger.debug "Creating digest engine #{conf.provider_config}"
           DigestEngine.new(OpenSSL::Digest.new(conf.provider_config))
         else
           raise DigestEngineException, "Given digest config #{conf.algo} does not have provider key mapping. Most likely this config is not supported by provider #{Ccrypto::Ruby::Provider.provider_name}"
         end
       end
 
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ruby_digest
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
-      end
-
       def self.digest(key)
         
         res = engineKeys[key]
         if is_empty?(res)
-          logger.debug "No digest available for #{key}"
+          teLogger.debug "No digest available for #{key}"
           raise DigestEngineException, "Not supported digest engine #{key}"
         else
-          logger.debug "Found digest #{key.to_sym}"
+          teLogger.debug "Found digest #{key.to_sym}"
           DigestEngine.new(OpenSSL::Digest.new(res.provider_config))
         end
 

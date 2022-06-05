@@ -4,6 +4,10 @@ module Ccrypto
   module Ruby
     class Compression
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_compression
+
       def initialize(*args, &block)
 
         @config = args.first
@@ -29,16 +33,16 @@ module Ccrypto
 
         case @config.level
         when :best_compression
-          logger.debug "Best compression"
+          teLogger.debug "Best compression"
           @eng = Zlib::Deflate.new(Zlib::BEST_COMPRESSION)
         when :best_speed
-          logger.debug "Best compression"
+          teLogger.debug "Best compression"
           @eng = Zlib::Deflate.new(Zlib::BEST_SPEED)
         when :no_compression
-          logger.debug "No compression"
+          teLogger.debug "No compression"
           @eng = Zlib::Deflate.new(Zlib::NO_COMPRESSION)
         else
-          logger.debug "Default compression"
+          teLogger.debug "Default compression"
           @eng = Zlib::Deflate.new(Zlib::DEFAULT_COMPRESSION)
         end
 
@@ -50,14 +54,6 @@ module Ccrypto
 
       def final
         
-      end
-
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :comp
-        end
-        @logger
       end
 
     end

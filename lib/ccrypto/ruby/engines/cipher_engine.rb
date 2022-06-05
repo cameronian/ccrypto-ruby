@@ -7,52 +7,13 @@ module Ccrypto
       include TR::CondUtils
       include DataConversion
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_cipher_eng
+
       def self.supported_ciphers
         if @sCipher.nil?
           @sCipher = OpenSSL::Cipher.ciphers
-          #@sCipher.map! { |v| 
-          #  f = v.split("-")
-          #  algo = f[0]
-
-          #  if algo == "id"
-          #    nil
-          #  else
-
-          #    if f.length > 2
-          #      ks = f[1]
-          #      mode = f[2].to_s.downcase.to_sym
-          #    else
-          #      e = f[1]
-          #      if e.to_i > 0
-          #        ks = e
-          #      else
-          #        mode = e.to_s.downcase.to_sym
-          #      end
-          #      #mode = f[1].to_s.downcase.to_sym
-          #    end
-
-          #    cc = Ccrypto::CipherConfig.new(algo) do |k|
-          #      case k
-          #      when :keysize
-          #        ks.to_i
-          #      when :mode
-          #        mode
-          #      when :ivLength
-          #        if mode == :gcm
-          #          12
-          #        else
-          #          16
-          #        end
-          #      end
-          #    end
-
-          #    cc.provider_config = v
-          #    cc
-
-          #  end
-          #}
-
-          #@sCipher.delete_if { |e| e == nil }
         end
 
         @sCipher
@@ -79,7 +40,7 @@ module Ccrypto
       def self.to_openssl_spec(spec)
         res = []
 
-        logger.debug "to_openssl_spec #{spec}"
+        teLogger.debug "to_openssl_spec #{spec}"
         case spec.algo
         when :blowfish
           res << "bf"
@@ -91,28 +52,17 @@ module Ccrypto
 
         res << spec.mode 
 
-        logger.debug "to_openssl_spec #{res}"
+        teLogger.debug "to_openssl_spec #{res}"
 
         res.join("-")
         
       end
 
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ccipher_eng
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
-      end
-
       def initialize(*args, &block)
         @spec = args.first
 
-        #logger = Tlogger.new
-        logger.debug "Cipher spec : #{@spec}"
+        #teLogger = TteLogger.new
+        teLogger.debug "Cipher spec : #{@spec}"
 
         begin
           case @spec
@@ -131,10 +81,10 @@ module Ccrypto
 
         case @spec.cipherOps
         when :encrypt, :enc
-          logger.debug "Operation encrypt"
+          teLogger.debug "Operation encrypt"
           @cipher.encrypt
         when :decrypt, :dec
-          logger.debug "Operation decrypt"
+          teLogger.debug "Operation decrypt"
           @cipher.decrypt
         else
           raise Ccrypto::CipherEngineException, "Cipher operation (encrypt/decrypt) must be given"
@@ -142,18 +92,18 @@ module Ccrypto
 
 
         if @spec.has_iv?
-          logger.debug "IV from spec"
+          teLogger.debug "IV from spec"
           @cipher.iv = @spec.iv
-          logger.debug "IV : #{to_hex(@spec.iv)}"
+          teLogger.debug "IV : #{to_hex(@spec.iv)}"
         else
-          logger.debug "Generate random IV"
+          teLogger.debug "Generate random IV"
           @spec.iv = @cipher.random_iv
-          logger.debug "IV : #{to_hex(@spec.iv)}"
+          teLogger.debug "IV : #{to_hex(@spec.iv)}"
         end
 
 
         if @spec.has_key?
-          logger.debug "Key from spec"
+          teLogger.debug "Key from spec"
           case @spec.key
           when Ccrypto::SecretKey
             @cipher.key = @spec.key.to_bin
@@ -163,7 +113,7 @@ module Ccrypto
             raise Ccrypto::CipherEngineException, "Unknown key type for processing #{@spec.key}"
           end
         else
-          logger.debug "Generate random Key"
+          teLogger.debug "Generate random Key"
           @spec.key = @cipher.random_key
         end
 
@@ -171,13 +121,13 @@ module Ccrypto
         if @spec.is_mode?(:gcm)
 
           if not_empty?(@spec.auth_data) 
-            logger.debug "Setting auth data"
+            teLogger.debug "Setting auth data"
             @cipher.auth_data = @spec.auth_data
           end
 
           if not_empty?(@spec.auth_tag) 
             raise CipherEngineException, "Tag length of 16 bytes is expected" if @spec.auth_tag.bytesize != 16
-            logger.debug "Setting auth tag"
+            teLogger.debug "Setting auth tag"
             @cipher.auth_tag = @spec.auth_tag
           end
 
@@ -213,10 +163,6 @@ module Ccrypto
 
       def reset
         @cipher.reset
-      end
-
-      def logger
-        self.class.logger
       end
 
     end

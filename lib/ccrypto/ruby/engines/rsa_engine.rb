@@ -25,6 +25,10 @@ module Ccrypto
       include PKCS12Store
       include PEMStore
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_rsa_keybundle
+
       def initialize(kp)
         @nativeKeypair = kp
       end
@@ -74,29 +78,18 @@ module Ccrypto
 
         case bin
         when String
-          logger.debug "Given String to load from storage" 
+          teLogger.debug "Given String to load from storage" 
           if is_pem?(bin)
             self.from_pem(bin, &block)
           else
             # binary buffer
-            logger.debug "Given binary to load from storage" 
+            teLogger.debug "Given binary to load from storage" 
             self.from_pkcs12(bin,&block)
           end
         else
           raise KeyBundleStorageException, "Unsupported input type #{bin}"
         end
 
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecc_keybundle
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
       end
 
       def equal?(kp)
@@ -109,7 +102,7 @@ module Ccrypto
 
       def method_missing(mtd, *args, &block)
         if @nativeKeypair.respond_to?(mtd)
-          logger.debug "Sending to nativeKeypair #{mtd}"
+          teLogger.debug "Sending to nativeKeypair #{mtd}"
           @nativeKeypair.send(mtd,*args, &block)
         else
           super

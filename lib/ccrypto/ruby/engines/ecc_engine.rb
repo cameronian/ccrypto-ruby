@@ -22,30 +22,13 @@ module Ccrypto
 
     class ECCPublicKey < Ccrypto::ECCPublicKey
       
-      #def initialize(pubKey)
-      #  @pubKey = pubKey
-      #end
-
       def to_bin
         @native_pubKey.to_der
       end
 
-      #def native_pubKey
-      #  @pubKey
-      #end
-
       def self.to_key(bin)
         ek = OpenSSL::PKey::EC.new(bin)
-        #logger.debug "to_key : #{ek}"
         ECCPublicKey.new(ek)
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecc_pubkey
-        end
-        @logger
       end
 
     end
@@ -56,6 +39,10 @@ module Ccrypto
 
       include PKCS12Store
       include PEMStore
+
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_ecc_keybundle
 
       def initialize(keypair)
         @nativeKeypair = keypair
@@ -136,29 +123,18 @@ module Ccrypto
 
         case bin
         when String
-          logger.debug "Given String to load from storage" 
+          teLogger.debug "Given String to load from storage" 
           if is_pem?(bin)
             self.from_pem(bin, &block)
           else
             # binary buffer
-            logger.debug "Given binary to load from storage" 
+            teLogger.debug "Given binary to load from storage" 
             self.from_pkcs12(bin,&block)
           end
         else
           raise KeyBundleStorageException, "Unsupported input type #{bin}"
         end
 
-      end
-
-      def self.logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecc_keybundle
-        end
-        @logger
-      end
-      def logger
-        self.class.logger
       end
 
       def equal?(kp)
@@ -172,7 +148,7 @@ module Ccrypto
 
       def method_missing(mtd, *args, &block)
         if @nativeKeypair.respond_to?(mtd)
-          logger.debug "Sending to nativeKeypair #{mtd}"
+          teLogger.debug "Sending to nativeKeypair #{mtd}"
           @nativeKeypair.send(mtd,*args, &block)
         else
           super
@@ -188,6 +164,10 @@ module Ccrypto
     class ECCEngine
       include TR::CondUtils
 
+      include TeLogger::TeLogHelper
+
+      teLogger_tag :r_ecc
+
       def self.supported_curves
         if @curves.nil?
           @curves = OpenSSL::PKey::EC.builtin_curves.map { |c| Ccrypto::ECCConfig.new(c[0]) }
@@ -198,13 +178,13 @@ module Ccrypto
       def initialize(*args, &block)
         @config = args.first 
         raise KeypairEngineException, "1st parameter must be a #{Ccrypto::KeypairConfig.class} object" if not @config.is_a?(Ccrypto::KeypairConfig)
-        logger.debug "Config #{@config}"
+        teLogger.debug "Config #{@config}"
       end
 
       def generate_keypair(&block)
-        logger.debug "Generating keypair of curve #{@config.curve}"
+        teLogger.debug "Generating keypair of curve #{@config.curve}"
         kp = OpenSSL::PKey::EC.generate(@config.curve.to_s) 
-        #logger.debug "Generated keypair #{kp.inspect}"
+        #teLogger.debug "Generated keypair #{kp.inspect}"
         ECCKeyBundle.new(kp)
       end
 
@@ -214,7 +194,7 @@ module Ccrypto
         kp = @config.keypair
         
         res = kp.nativeKeypair.dsa_sign_asn1(val)
-        logger.debug "Data of length #{val.length} signed "
+        teLogger.debug "Data of length #{val.length} signed "
 
         res
       end
@@ -228,15 +208,6 @@ module Ccrypto
 
         res = uPubKey.dsa_verify_asn1(val, sign)
         res
-      end
-
-      private
-      def logger
-        if @logger.nil?
-          @logger = Tlogger.new
-          @logger.tag = :ecc_engine
-        end
-        @logger
       end
 
     end
