@@ -5,6 +5,8 @@ require_relative 'ruby/engines/x509_engine'
 
 require_relative 'ruby/engines/scrypt_engine'
 require_relative 'ruby/engines/hkdf_engine'
+require_relative 'ruby/engines/pbkdf2_engine'
+
 require_relative 'ruby/engines/secure_random_engine'
 require_relative 'ruby/engines/cipher_engine'
 
@@ -75,6 +77,8 @@ module Ccrypto
             ScryptEngine.new(*args,&block)
           when Ccrypto::HKDFConfig
             HKDFEngine.new(*args, &block)
+          when Ccrypto::PBKDF2Config
+            PBKDF2Engine.new(*args, &block)
           when Ccrypto::CipherConfig
             CipherEngine.new(*args, &block)
           when Ccrypto::HMACConfig
