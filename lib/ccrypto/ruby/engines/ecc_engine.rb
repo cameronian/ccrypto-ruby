@@ -6,7 +6,6 @@ module PKeyPatch
 
   #private
   def public_key
-    puts "called"
     key = ::OpenSSL::PKey::EC.new group
     key.public_key = self
     key

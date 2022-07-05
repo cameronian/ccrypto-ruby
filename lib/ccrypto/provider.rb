@@ -12,6 +12,7 @@ require_relative 'ruby/engines/cipher_engine'
 
 require_relative 'ruby/utils/comparator'
 require_relative 'ruby/utils/memory_buffer'
+require_relative 'ruby/utils/native_helper'
 
 require_relative 'ruby/engines/asn1_engine'
 require_relative 'ruby/engines/compression_engine'
@@ -159,6 +160,8 @@ module Ccrypto
         when :decompression
           Decompression.new(*(args[1..-1]), &block)
 
+        when :native_helper
+          NativeHelper
 
         else
           raise CcryptoProviderException, "Util type #{type} is not supported by provider #{self.provider_name}"

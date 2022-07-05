@@ -19,6 +19,7 @@ module Ccrypto
 
       def derive(input, output = :binary)
 
+        @config.digest = default_digest if is_empty?(@config.digest)
         digest = init_digest(@config.digest)
 
         logger.debug "Digest : #{@config.digest}"
@@ -49,6 +50,10 @@ module Ccrypto
         else
           raise DigestEngineException, "Digest algo '#{algo}' is not supported"
         end
+      end
+
+      def default_digest
+        :sha3_256
       end
 
       def logger
