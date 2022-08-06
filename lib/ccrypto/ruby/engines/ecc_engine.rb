@@ -122,13 +122,17 @@ module Ccrypto
 
         case bin
         when String
-          teLogger.debug "Given String to load from storage" 
-          if is_pem?(bin)
-            self.from_pem(bin, &block)
-          else
-            # binary buffer
-            teLogger.debug "Given binary to load from storage" 
-            self.from_pkcs12(bin,&block)
+          begin
+            teLogger.debug "Given String to load from storage"
+            if is_pem?(bin)
+              self.from_pem(bin, &block)
+            else
+              # binary buffer
+              teLogger.debug "Given binary to load from storage"
+              self.from_pkcs12(bin,&block)
+            end
+          rescue Ccrypto::Ruby::PKCS12Store::PKCS12StoreException => ex
+            raise KeyBundleStorageException, ex
           end
         else
           raise KeyBundleStorageException, "Unsupported input type #{bin}"
