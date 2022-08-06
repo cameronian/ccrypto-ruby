@@ -106,4 +106,29 @@ RSpec.describe "ECC Engine Spec" do
     
   end
 
+  it 'derives two different session key' do
+    
+    c = Ccrypto::ECCConfig.new("secp256k1")
+    eng = Ccrypto::AlgoFactory.engine(c)
+
+    k1 = eng.generate_keypair
+    k2 = eng.generate_keypair
+
+    expect(k1.equal?(k2)).to be false
+
+    pubK1 = k1.nativeKeypair.public_key
+    pubK2 = k2.nativeKeypair.public_key
+
+    privK1 = k1.nativeKeypair.private_key
+    s1 = k1.nativeKeypair.dh_compute_key(pubK1)
+    s2 = k1.nativeKeypair.dh_compute_key(pubK2)
+
+    s3 = k2.nativeKeypair.dh_compute_key(pubK1)
+    s4 = k2.nativeKeypair.dh_compute_key(pubK2)
+
+    expect(s2 == s3).to be true
+    expect(s1 != s4).to be true
+
+  end
+
 end
