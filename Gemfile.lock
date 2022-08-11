@@ -1,6 +1,6 @@
 GIT
   remote: ccrypto
-  revision: d5378f533cbeff32a8e58c8b15167382c506f490
+  revision: 0d1c446d77fb781857f5ac087de9326bc3dafca9
   branch: main
   specs:
     ccrypto (0.1.0)
@@ -48,7 +48,7 @@ GEM
     toolrack (0.18.5)
       base58
       tlogger
-    tzinfo (2.0.4)
+    tzinfo (2.0.5)
       concurrent-ruby (~> 1.0)
 
 PLATFORMS

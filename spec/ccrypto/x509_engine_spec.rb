@@ -56,7 +56,8 @@ RSpec.describe "X509 engine spec for Ruby" do
     prof.dns_name = "https://asdf.com"
     prof.email = "jamma@saa.com"
 
-    prof.key_usage.enable_digitalSignature(true) #.enable_nonRepudiation
+    #prof.key_usage.enable_digitalSignature(true) #.enable_nonRepudiation
+    prof.key_usage.enable_digitalSignature(true).enable_dataEncipherment
 
     prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
 
