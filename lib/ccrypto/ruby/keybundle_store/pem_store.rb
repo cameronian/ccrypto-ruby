@@ -34,7 +34,7 @@ module Ccrypto
             ECCKeyBundle.new(pKey)
           rescue OpenSSL::PKey::PKeyError => ex
             raise PEMStoreException, "block is required" if not block
-            pass = block.call(:pem_pass)
+            pass = block.call(:store_pass)
             begin
               pKey = OpenSSL::PKey.read(input, pass)
               ECCKeyBundle.new(pKey)
@@ -51,8 +51,8 @@ module Ccrypto
 
       def to_pem(&block)
         raise PEMStoreException, "Block is required" if not block
-        kcipher = block.call(:pem_cipher) 
-        kpass = block.call(:pem_pass)
+        kcipher = block.call(:store_cipher) 
+        kpass = block.call(:store_pass)
 
         kcipher = "AES-256-GCM" if is_empty?(kcipher)
 

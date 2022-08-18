@@ -48,10 +48,10 @@ RSpec.describe "ECC Engine Spec" do
     # with password
     spem = kp.to_storage(:pem) do |key|
       case key
-      when :pem_cipher
+      when :store_cipher
         # default is AES-256-GCM
         "AES-256-CBC"
-      when :pem_pass
+      when :store_pass
         "p@ssw0rd"
       end
     end
@@ -66,7 +66,7 @@ RSpec.describe "ECC Engine Spec" do
 
     rkp2 = kpfc.from_storage(spem) do |key|
       case key
-      when :pem_pass
+      when :store_pass
         "p@ssw0rd"
       end
     end
@@ -76,8 +76,8 @@ RSpec.describe "ECC Engine Spec" do
     expect {
       rkp = kpfc.from_storage(spem) do |key|
         case key
-        when :pem_pass
-          ""
+        when :store_pass
+          "asdf"
         end
       end
     }.to raise_exception(Ccrypto::KeyBundleStorageException)

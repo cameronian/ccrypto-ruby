@@ -26,7 +26,7 @@ module Ccrypto
             inp = input
           end
 
-          pass = block.call(:p12_pass)
+          pass = block.call(:store_pass)
           raise PKCS12StoreException, "Password cannot be empty" if is_empty?(pass)
 
           begin
@@ -80,10 +80,10 @@ module Ccrypto
           end
         end
 
-        pass = block.call(:p12_pass)
+        pass = block.call(:store_pass) 
         raise PKCS12StoreException, "Password is required" if is_empty?(pass)
 
-        name = block.call(:p12_name)
+        name = block.call(:key_name)
         name = "Ccrypto KeyBundle" if is_empty?(name)
 
         keypair = block.call(:keypair)

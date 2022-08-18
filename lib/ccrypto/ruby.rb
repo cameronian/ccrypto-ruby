@@ -13,6 +13,7 @@ require_relative 'provider'
 
 require_relative 'ruby/ext/secret_key'
 require_relative 'ruby/ext/x509_cert'
+require_relative 'ruby/ext/x509_csr'
 
 module Ccrypto
   module Ruby

@@ -112,6 +112,8 @@ RSpec.describe "X509 engine spec for Ruby" do
 
     prof.add_domain_key_usage("1.2.11.22.33")
 
+    prof.add_custom_extension("1.24.23.44.223","For private use")
+
     fact = Ccrypto::AlgoFactory.engine(prof)
     expect(fact).not_to be nil
 
@@ -263,9 +265,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           rootCert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Root CA"
         end
       end
@@ -313,9 +315,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           subCACert
         when :certchain
           [rootCert,subCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Sub CA"
         end
       end
@@ -338,6 +340,7 @@ RSpec.describe "X509 engine spec for Ruby" do
     prof.ext_key_usage.enable_serverAuth.enable_clientAuth
 
     prof.gen_issuer_cert = true
+    prof.issuer_path_len = 0 # should not be any sub CA beneath this sub CA
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
 
@@ -362,9 +365,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           leafCACert
         when :certchain
           [rootCert,subCACert,leafCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Operational CA"
         end
       end
@@ -412,9 +415,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           userCert
         when :certchain
           [rootCert,subCACert,leafCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test End User Certificate"
         end
       end
@@ -431,7 +434,7 @@ RSpec.describe "X509 engine spec for Ruby" do
 
     rkp,rcert,rchain = kpfc.from_storage(File.read("enduser.p12")) do |key|
       case key
-      when :p12_pass
+      when :store_pass
         "password"
       end
     end
@@ -487,9 +490,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           rootCert
         when :certchain
           [rootCert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Root CA RSA"
         end
       end
@@ -537,9 +540,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           subCACert
         when :certchain
           [rootCert,subCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Sub CA RSA"
         end
       end
@@ -586,9 +589,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           leafCACert
         when :certchain
           [rootCert,subCACert,leafCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test Operational CA RSA"
         end
       end
@@ -636,9 +639,9 @@ RSpec.describe "X509 engine spec for Ruby" do
           userCert
         when :certchain
           [rootCert,subCACert,leafCACert]
-        when :p12_pass
+        when :store_pass
           "password"
-        when :p12_name
+        when :key_name
           "Test End User Certificate RSA"
         end
       end
@@ -655,7 +658,7 @@ RSpec.describe "X509 engine spec for Ruby" do
 
     rkp,rcert,rchain = kpfc.from_storage(File.read("enduser-rsa.p12")) do |key|
       case key
-      when :p12_pass
+      when :store_pass
         "password"
       end
     end
