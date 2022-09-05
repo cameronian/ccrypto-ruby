@@ -35,6 +35,9 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'ccrypto'
 
+  spec.add_dependency 'ed25519'
+  spec.add_dependency 'x25519'
+
   spec.add_development_dependency 'devops_assist'
 
   # Uncomment to register a new dependency of your gem

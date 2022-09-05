@@ -15,3 +15,6 @@
 *_test.rb
 *.p12
 
+*.csr
+*.log
+

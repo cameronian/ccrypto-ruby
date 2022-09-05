@@ -4,6 +4,9 @@ require_relative 'ruby/engines/digest_engine'
 require_relative 'ruby/engines/x509_engine'
 require_relative 'ruby/engines/x509_csr_engine'
 
+require_relative 'ruby/engines/ed25519_engine'
+require_relative 'ruby/engines/x25519_engine'
+
 require_relative 'ruby/engines/scrypt_engine'
 require_relative 'ruby/engines/hkdf_engine'
 require_relative 'ruby/engines/pbkdf2_engine'
@@ -64,6 +67,8 @@ module Ccrypto
             SecretSharingEngine
           elsif config == Ccrypto::X509::CSRProfile
             X509CSREngine
+          elsif config == Ccrypto::ED25519Config
+            ED25519Engine
           else
             raise CcryptoProviderException, "Config class '#{config}' is not supported for provider '#{self.provider_name}'"
           end
@@ -93,6 +98,10 @@ module Ccrypto
             SecretSharingEngine.new(*args,&block)
           when Ccrypto::PKCS7Config
             PKCS7Engine.new(*args, &block)
+          when Ccrypto::ED25519Config
+            ED25519Engine.new(*args, &block)
+          when Ccrypto::X25519Config
+            X25519Engine.new(*args, &block)
           else
             raise CcryptoProviderException, "Config instance '#{config}' is not supported for provider '#{self.provider_name}'"
           end
