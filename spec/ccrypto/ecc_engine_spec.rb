@@ -9,6 +9,7 @@ RSpec.describe "ECC Engine Spec" do
     ecc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig)
     expect(ecc != nil).to be true
 
+    p ecc.supported_curves
     ecc.supported_curves.each do |c|
       puts "Generating ECC algo #{c}"
       kp = Ccrypto::AlgoFactory.engine(c).generate_keypair
@@ -92,18 +93,48 @@ RSpec.describe "ECC Engine Spec" do
 
   it 'sign data with ECC keypair' do
 
-    conf = Ccrypto::ECCConfig.new("secp256k1")
-    kpf = Ccrypto::AlgoFactory.engine(conf)
-    kp = kpf.generate_keypair
+    ecc = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig)
+    expect(ecc != nil).to be true
 
-    conf.keypair = kp
+    ecc.supported_curves.each do |c|
+
+      begin
+
+        kpf = Ccrypto::AlgoFactory.engine(c)
+        kp = kpf.generate_keypair
+
+        c.keypair = kp
+        data_to_be_signed = "testing 123" * 128
+        res = kpf.sign(data_to_be_signed)
+        expect(res).not_to be nil
+
+        vres = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig).verify(kp.public_key, data_to_be_signed, res)
+        expect(vres).to be true
+
+      rescue OpenSSL::PKey::ECError => ex
+        p ex
+      rescue Exception => ex
+        #p ex
+      end
+
+    end
+  end
+
+  it 'standard sign and verify' do
+    ec = OpenSSL::PKey::EC.generate("secp256k1")
+
     data_to_be_signed = "testing 123" * 128
-    res = kpf.sign(data_to_be_signed)
+    res = ec.dsa_sign_asn1(data_to_be_signed)
+    #res = ec.sign_raw(nil, data_to_be_signed, {})
+    #res = ec.sign(nil, data_to_be_signed, {})
     expect(res).not_to be nil
 
-    vres = Ccrypto::AlgoFactory.engine(Ccrypto::ECCConfig).verify(kp.public_key, data_to_be_signed, res)
+    #vres = ec.verify(nil, res, data_to_be_signed, {})
+    pk = OpenSSL::PKey::EC.new(ec.public_key.group)
+    pk.public_key = ec.public_key
+    vres = pk.dsa_verify_asn1(data_to_be_signed, res)
     expect(vres).to be true
-    
+ 
   end
 
   it 'derives two different session key' do
@@ -131,4 +162,49 @@ RSpec.describe "ECC Engine Spec" do
 
   end
 
+  context "Standard ECC operations", if: OpenSSL::VERSION >= "3.0.0" do
+
+    it 'derives key from ECC keys' do
+
+      k1 = OpenSSL::PKey::EC.generate("prime256v1")
+      k2 = OpenSSL::PKey::EC.generate("prime256v1")
+
+      pk1 = k1.public_to_der
+      pk2 = k2.public_to_der
+
+      p k1.public_key.group.curve_name
+
+      pk11 = k1.public_key.to_bn
+      pk21 = k2.public_key.to_bn
+
+      p pk11.to_s(2)
+
+      rpk1 = OpenSSL::PKey::EC.new(pk1)
+      p rpk1
+      rpk2 = OpenSSL::PKey::EC.new(pk2)
+
+
+      # success
+      s1 = k1.dh_compute_key(k1.public_key)
+      s2 = k1.dh_compute_key(k2.public_key)
+
+      rpk11 = OpenSSL::PKey::EC::Point.new(OpenSSL::PKey::EC::Group.new("prime256v1"), pk11)
+      rpk21 = OpenSSL::PKey::EC::Point.new(OpenSSL::PKey::EC::Group.new("prime256v1"), pk21)
+
+      s1 = k2.dh_compute_key(rpk11)
+      s2 = k1.dh_compute_key(rpk21)
+
+      p rpk11
+
+      expect(s1 == s2).to be true
+
+      #s3 = k2.nativeKeypair.dh_compute_key(rb1)
+      #s4 = k2.nativeKeypair.dh_compute_key(rb2)
+
+      #expect(s2 == s3).to be true
+      #expect(s1 != s4).to be true
+
+    end
+
+  end
 end

@@ -35,10 +35,48 @@ require_relative 'ruby/engines/rsa_engine'
 
 module Ccrypto
   module Ruby
+
+    class KSPemStore
+      include TR::CondUtils
+      include PEMStore
+    end
+
+    class KSP12Store
+      include TR::CondUtils
+      include DataConversion
+      include PKCS12Store
+    end
+
     class Provider
 
       def self.provider_name
         "ruby"
+      end
+
+      def self.supported_keypair_config(purpose = :signing, &block)
+        case purpose
+        when :signing, :sign, :identity
+          [Ccrypto::ECCConfig, Ccrypto::RSAConfig, Ccrypto::ED25519Config]
+        when :cipher, :encryption, :enc
+          [Ccrypto::ECCConfig, Ccrypto::RSAConfig, Ccrypto::X25519Config]
+        when :sign_and_encrypt, :sign_and_enc, :sign_and_cipher
+          [Ccrypto::ECCConfig, Ccrypto::RSAConfig]
+        else
+          raise KeypairEngineException, "Unknown key purpose '#{purpose}'. Supported including :signing, :cipher or :both"
+        end
+      end
+
+      def self.supported_secret_key_config(&block)
+        CipherEngine.supported_cipher_list 
+      end
+
+      def self.keybundle_from_storage(*args, &block)
+        input = args.first
+        if KSPemStore.is_pem?(input) 
+          KSPemStore.from_pem(input, &block)
+        else
+          KSP12Store.from_pkcs12(input, &block) 
+        end
       end
 
       def self.algo_instance(*args, &block)
@@ -106,50 +144,6 @@ module Ccrypto
             raise CcryptoProviderException, "Config instance '#{config}' is not supported for provider '#{self.provider_name}'"
           end
         end
-
-        #case config
-        #when Ccrypto::ECCConfig.class
-        #  puts "ecc config class"
-        #  ECCEngine
-        #when Ccrypto::ECCConfig
-        #  puts "ecc config"
-        #  ECCEngine.new(*args, &block)
-        #when Ccrypto::DigestConfig.class
-        #  puts "digest config class"
-        #  DigestEngine
-        #when Ccrypto::DigestConfig
-        #  puts "digest config"
-        #  DigestEngine.instance(*args,&block)
-        #else
-        #  raise CcryptoProviderException, "Config '#{config}' is not supported for provider '#{self.provider_name}'"
-        #end
-
-        #case algo
-        #when :ecc
-        #  ECCEngine
-        #when :x509
-        #  if args.length > 1
-        #    X509Engine.new(*args[1..-1])
-        #  else
-        #    X509Engine
-        #  end
-        #when :scrypt
-        #  ScryptEngine.new
-        #when :secure_random
-        #  SecureRandomEngine
-        #else
-        #  if DigestEngine.is_supported?(algo)
-        #    DigestEngine.instance(algo)
-        #  elsif CipherEngine.is_supported_cipher?(algo.to_s)
-        #    if args.length > 1 or args[0].is_a?(String)
-        #      CipherEngine.new(*args)
-        #    else
-        #      CipherEngine
-        #    end
-        #  else
-        #    raise CcryptoProviderException, "Algo '#{algo}' is not supported for provider '#{self.provider_name}'"
-        #  end
-        #end
 
       end
 

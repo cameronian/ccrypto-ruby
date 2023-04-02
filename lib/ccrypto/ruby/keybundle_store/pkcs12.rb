@@ -11,6 +11,7 @@ module Ccrypto
       class PKCS12StoreException < KeyBundleStorageException; end
 
       module ClassMethods
+
         def from_pkcs12(input, &block)
           raise PKCS12StoreException, "Input cannot be empty" if is_empty?(input) 
 
@@ -19,9 +20,9 @@ module Ccrypto
           inForm = block.call(:in_format)
           case inForm
           when :b64
-            inp = from_b64(bin)
+            inp = from_b64(input)
           when :hex
-            inp = from_hex(bin)
+            inp = from_hex(input)
           else
             inp = input
           end

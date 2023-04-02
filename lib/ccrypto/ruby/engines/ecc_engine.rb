@@ -1,5 +1,7 @@
 
 require 'openssl'
+if OpenSSL::VERSION < "3.0.0"
+
 module PKeyPatch
   def to_pem; public_key.to_pem end
   def to_der; public_key.to_der end
@@ -13,20 +15,51 @@ module PKeyPatch
 end
 OpenSSL::PKey::EC::Point.prepend PKeyPatch
 
+end
+
 require_relative '../keybundle_store/pkcs12'
 require_relative '../keybundle_store/pem_store'
+require_relative '../ecc_const'
 
 module Ccrypto
   module Ruby
 
     class ECCPublicKey < Ccrypto::ECCPublicKey
-      
+
       def to_bin
-        @native_pubKey.to_der
+        if OpenSSL::VERSION < "3.0.0"
+          @native_pubKey.to_der
+        else
+          const = ECCConst[@native_pubKey.group.curve_name]
+          # At 01 April 2023
+          # at Ruby 3.2.1/OpenSSL gem 3.1.0/OpenSSL 3.0.2
+          # The gem has bug that the encoding is incorrect
+          OpenSSL::ASN1::Sequence.new([
+            OpenSSL::ASN1::ObjectId.new("2.8.8.128.0"),
+            OpenSSL::ASN1::Integer.new(0x0100),
+            OpenSSL::ASN1::Integer.new(const),
+            OpenSSL::ASN1::BitString.new(@native_pubKey.to_bn)
+          ]).to_der
+        end
       end
 
       def self.to_key(bin)
-        ek = OpenSSL::PKey::EC.new(bin)
+        if OpenSSL::VERSION > "3.0.0"
+          ek = OpenSSL::PKey::EC.new(bin)
+        else
+          seq = OpenSSL::ASN1Object.decode(bin).value
+          envp = ASN1Object.decode(seq[0]).value
+          raise KeypairEngineException, "Not ECC public key" if envp != "2.8.8.8.128.0"
+          ver = ASN1Object.decode(seq[1]).value
+          raise KeypairEngineException, "Unsupported version" if ver != 0x0100
+          cv = ASN1Object.decode(seq[2]).value
+          curve = ECCConst.invert[cv]
+          raise KeypairEngineException, "Unknown curve '#{curve}'" if curve.nil?
+          kv = ASN1Object.decode(seq[3]).value
+
+          ek = OpenSSL::PKey::EC::Point.new(OpenSSL::PKey::EC::Group.new(curve), kv)
+        end
+
         ECCPublicKey.new(ek)
       end
 
@@ -49,7 +82,11 @@ module Ccrypto
 
       def public_key
         if @pubKey.nil?
-          @pubKey = ECCPublicKey.new(@nativeKeypair.public_key)
+          #if OpenSSL::VERSION < "3.0.0"
+            @pubKey = ECCPublicKey.new(@nativeKeypair.public_key)
+          #else
+          #  @pubKey = ECCPublicKey.new(@nativeKeypair.public_key.to_bn)
+          #end
         end
         @pubKey
       end
@@ -65,12 +102,21 @@ module Ccrypto
           tkey = pubKey
         when Ccrypto::ECCPublicKey
           tkey = pubKey.native_pubKey
-          tkey = tkey.public_key if not tkey.is_a?(OpenSSL::PKey::EC::Point)
+          if OpenSSL::VERSION < "3.0.0"
+            tkey = tkey.public_key if not tkey.is_a?(OpenSSL::PKey::EC::Point)
+          else
+            tkey = OpenSSL::PKey::EC.new(tkey)
+          end
         else
           raise KeypairEngineException, "Unknown public key type #{pubKey.class}" 
         end
 
-        raise KeypairEngineException, "OpenSSL::PKey::EC::Point is required. Given #{tkey.inspect}" if not tkey.is_a?(OpenSSL::PKey::EC::Point)
+        if OpenSSL::VERSION < "3.0.0"
+          raise KeypairEngineException, "OpenSSL::PKey::EC::Point is required. Given #{tkey.inspect}" if not tkey.is_a?(OpenSSL::PKey::EC::Point)
+        else
+          raise KeypairEngineException, "OpenSSL::PKey::EC is required. Given #{tkey.inspect}" if not tkey.is_a?(OpenSSL::PKey::EC)
+        end
+
         @nativeKeypair.dh_compute_key(tkey) 
       end
 
@@ -171,9 +217,24 @@ module Ccrypto
 
       teLogger_tag :r_ecc
 
+      NotAbleToFigureOutOnOpenSSLv2 = [
+        "Oakley-EC2N-3",
+        "Oakley-EC2N-4"
+      ]
+
       def self.supported_curves
         if @curves.nil?
-          @curves = OpenSSL::PKey::EC.builtin_curves.map { |c| Ccrypto::ECCConfig.new(c[0]) }
+          @curves = []
+          OpenSSL::PKey::EC.builtin_curves.sort.map { |c| 
+            
+            next if c[0] =~ /^wap/ or NotAbleToFigureOutOnOpenSSLv2.include?(c[0])
+
+            if c[0] == "prime256v1"
+              @curves << Ccrypto::ECCConfig.new(c[0], Ccrypto::KeypairConfig::Algo_Active, true) 
+            else
+              @curves << Ccrypto::ECCConfig.new(c[0]) 
+            end
+          }
         end
         @curves
       end
@@ -203,14 +264,28 @@ module Ccrypto
       end
 
       def self.verify(pubKey, val, sign)
-        uPubKey = pubKey.native_pubKey
-        if pubKey.native_pubKey.is_a?(OpenSSL::PKey::EC::Point)
-          uPubKey = OpenSSL::PKey::EC.new(uPubKey.group)
-          uPubKey.public_key = pubKey.native_pubKey
-        end
+        if OpenSSL::VERSION > "3.0.0"
+          p pubKey.native_pubKey
+          p pubKey.native_pubKey.methods.sort
+          uPubKey = pubKey.native_pubKey
+          if uPubKey.is_a?(OpenSSL::PKey::EC::Point)
+            res = uPubKey.dsa_verify_asn1(val, sign)
+            res
+          else
+            raise KeypairEngineException, "Unsupported public key type '#{uPubKey.class}'"
+          end
 
-        res = uPubKey.dsa_verify_asn1(val, sign)
-        res
+        else
+          # OpenSSL v2 - Ruby 2.x
+          uPubKey = pubKey.native_pubKey
+          if pubKey.native_pubKey.is_a?(OpenSSL::PKey::EC::Point)
+            uPubKey = OpenSSL::PKey::EC.new(uPubKey.group)
+            uPubKey.public_key = pubKey.native_pubKey
+          end
+
+          res = uPubKey.dsa_verify_asn1(val, sign)
+          res
+        end
       end
 
     end

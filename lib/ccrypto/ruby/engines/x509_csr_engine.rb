@@ -1,5 +1,7 @@
 
 require 'openssl'
+if OpenSSL::VERSION < "3.0.0"
+
 module PKeyPatch
   def to_pem; public_key.to_pem end
   def to_der; public_key.to_der end
@@ -12,6 +14,8 @@ module PKeyPatch
   end
 end
 OpenSSL::PKey::EC::Point.prepend PKeyPatch
+
+end
 
 module Ccrypto
   module Ruby
@@ -43,6 +47,9 @@ module Ccrypto
           # ECC patch
           pub = OpenSSL::PKey::EC.new(pubKey.group)
           pub.public_key = pubKey
+          csr.public_key = pub
+        elsif pubKey.is_a?(String)
+          pub = OpenSSL::PKey::EC.new(pubKey)
           csr.public_key = pub
         else
           csr.public_key = pubKey

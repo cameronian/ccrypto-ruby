@@ -18,7 +18,7 @@ RSpec.describe "Test PKCS7" do
 
   #  prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-  #  prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+  #  prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
   #  prof.gen_subj_key_id = true
   #  prof.gen_auth_key_id = true
@@ -45,7 +45,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -96,7 +96,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -192,7 +192,7 @@ RSpec.describe "Test PKCS7" do
 
     prof.key_usage.enable_digitalSignature.enable_nonRepudiation
 
-    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timestamping
+    prof.ext_key_usage.enable_serverAuth.enable_clientAuth.enable_timeStamping
 
     prof.gen_subj_key_id = true
     prof.gen_auth_key_id = true
@@ -229,7 +229,43 @@ RSpec.describe "Test PKCS7" do
     # AES-256-GCM : malloc failure
     # AES-256-CCM : malloc failure
     # AES-256-XTS : malloc failure
-    ["AES-256-CBC","AES-256-CFB","AES-256-OFB","ARIA-256-CBC", "ARIA-256-CFB","ARIA-256-OFB", "BF-CBC", "CAMELLIA-256-CBC", "CAMELLIA-256-CFB", "CAMELLIA-256-OFB", "SEED-CBC", "SEED-CFB", "SEED-OFB", "SM4-CBC", "SM4-CFB", "SM4-OFB"].each do |c|
+    #
+    # On Ruby-3.2.1
+    # BF-CBC : Unsupported
+    # SEED family : Unsupported
+    #
+    #
+    # Followng crash the ruby runtime on ruby v3.2.1
+    #cc = Ccrypto::AlgoFactory.engine(Ccrypto::CipherConfig)
+    #cc.supported_cipher_list.each do |sf|
+
+    #  algo = sf.native_config[:algo_str]
+    #  begin
+    #    enc2 = p7.encrypt(data) do |k|
+    #      case k
+    #      when :cipher
+    #        algo
+    #      end
+    #    end
+
+    #    dec2 = dp7.decrypt(enc2)
+    #    expect(dec2).not_to be nil
+
+    #    if dec2 == data
+    #      puts "Algo #{algo} passed"
+    #    else
+    #      STDERR.puts "Algo #{algo} decryption failed"
+    #    end
+    #    #expect(dec2 == data).to be true
+
+    #    puts "Algo #{algo} passed"
+
+    #  rescue OpenSSL::Cipher::CipherError, Ccrypto::Ruby::PKCS7EngineException
+    #    STDERR.puts "Algo #{algo} failed"
+    #  end
+    #end
+
+    ["AES-256-CBC","AES-256-CFB","AES-256-OFB","ARIA-256-CBC", "ARIA-256-CFB","ARIA-256-OFB",  "CAMELLIA-256-CBC", "CAMELLIA-256-CFB", "CAMELLIA-256-OFB", "SM4-CBC", "SM4-CFB", "SM4-OFB"].each do |c|
 
       enc2 = p7.encrypt(data) do |k|
         case k

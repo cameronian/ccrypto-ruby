@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'teLogger'
   spec.add_dependency 'toolrack'
 
-  spec.add_dependency 'ccrypto'
+  #spec.add_dependency 'ccrypto' #, "~> 0.1.2"
 
   spec.add_dependency 'ed25519'
   spec.add_dependency 'x25519'

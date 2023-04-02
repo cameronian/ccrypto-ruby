@@ -3,7 +3,9 @@ require 'ed25519'
 
 module Ccrypto
   module Ruby
-    
+   
+    class ED25519Exception < StandardError; end
+
     class ED25519PublicKey < Ccrypto::ED25519PublicKey
 
     end

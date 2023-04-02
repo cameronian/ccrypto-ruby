@@ -74,6 +74,13 @@ module Ccrypto
           pub = OpenSSL::PKey::EC.new(pubKey.group)
           pub.public_key = pubKey
           cert.public_key = pub
+
+        elsif pubKey.is_a?(String)
+          # Changes for OpenSSL v3/Ruby v3
+          # native_pubKey is no longer object, will be a binary string instead
+          pub = OpenSSL::PKey::EC.new(pubKey)
+          cert.public_key = pub
+
         else
           cert.public_key = pubKey
         end
@@ -349,6 +356,8 @@ module Ccrypto
         cp.org_unit.each do |ou|
           res << ["OU", ou]
         end
+        res << ["L", cp.locality] if not_empty?(cp.locality)
+        res << ["C", cp.country] if not_empty?(cp.country)
 
         e = cp.email.first
         if not_empty?(e)

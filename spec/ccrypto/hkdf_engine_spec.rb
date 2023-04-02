@@ -9,6 +9,7 @@ RSpec.describe "HKDF on Ruby" do
    
     conf = Ccrypto::HKDFConfig.new
     conf.outBitLength = 256
+    conf.digest = :sha256
     sc = Ccrypto::AlgoFactory.engine(conf)
     expect(sc).not_to be nil
 

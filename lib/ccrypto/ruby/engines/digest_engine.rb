@@ -27,9 +27,10 @@ module Ccrypto
         Ccrypto::SHAKE256.provider_info("shake256"),
         Ccrypto::BLAKE2b512.provider_info("BLAKE2b512"),
         Ccrypto::BLAKE2s256.provider_info("BLAKE2s256"),
-        Ccrypto::SM3.provider_info("SM3"),
-        Ccrypto::RIPEMD160.provider_info("RIPEMD160"),
-        Ccrypto::WHIRLPOOL.provider_info("whirlpool")
+        Ccrypto::SM3.provider_info("SM3")
+        # deprecated starting OpenSSL v3.0
+        #Ccrypto::RIPEMD160.provider_info("RIPEMD160"),
+        #Ccrypto::WHIRLPOOL.provider_info("whirlpool")
       ]
 
 
@@ -38,14 +39,21 @@ module Ccrypto
       end
 
       def self.is_supported?(eng)
-        res = supported.include?(eng)
-        begin
-          res = digest(eng) if not res
-        rescue DigestEngineException => ex
-          res = false
+
+        case eng
+        when Ccrypto::DigestConfig
+          SupportedDigest.include?(eng) 
+        when String, Symbol
+          if eng.is_a?(Symbol)
+            engineKeys.include?(eng)
+          else
+            e = eng.gsub("-","_")
+            engineKeys.include?(e.to_sym)
+          end
+        else
+          raise DigestEngineException, "Unknown engine '#{eng}'"
         end
 
-        res
       end
 
       def self.instance(*args, &block)
@@ -59,16 +67,30 @@ module Ccrypto
       end
 
       def self.digest(key)
-        
-        res = engineKeys[key]
-        if is_empty?(res)
-          teLogger.debug "No digest available for #{key}"
-          raise DigestEngineException, "Not supported digest engine #{key}"
-        else
-          teLogger.debug "Found digest #{key.to_sym}"
-          DigestEngine.new(OpenSSL::Digest.new(res.provider_config))
-        end
 
+        case key
+        when Ccrypto::DigestConfig
+          DigestEngine.new(OpenSSL::Digest.new(key.provider_config))
+        when String, Symbol
+          if key.is_a?(Symbol)
+            res = engineKeys[key]
+          else
+            k = key.gsub("-","_")
+            res = engineKeys[k.to_sym]
+          end
+
+          if is_empty?(res)
+            teLogger.debug "No digest available for #{key}"
+            raise DigestEngineException, "Not supported digest engine #{key}"
+          else
+            teLogger.debug "Found digest #{key.to_sym}"
+            DigestEngine.new(OpenSSL::Digest.new(res.provider_config))
+          end
+
+        else
+          raise DigestEngineException, "Not supported digest engine #{key}"
+        end
+        
       end
 
       def self.engineKeys

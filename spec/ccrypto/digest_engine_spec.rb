@@ -6,11 +6,27 @@ RSpec.describe "Digest Engine for Ruby" do
    
     require 'ccrypto/ruby'
 
+    res = File.join(File.dirname(__FILE__),"digest_result.yml")
+    hasResult = File.exist?(res)
+
+    if hasResult
+      outres = nil
+      File.open(res,"r") do |f|
+        outres = f.read
+      end
+      outres = YAML.load(outres) 
+    else
+      puts " **** No result file digest_result.yml found at #{File.dirname(__FILE__)}. Test case on result correctness not done *** "
+      outres = {  }
+    end
+
     s2 = Ccrypto::AlgoFactory.engine(Ccrypto::DigestConfig)
     expect(s2).not_to be nil
 
     s2.supported.each do |d|
       puts "Testing algo #{d.provider_config}"
+      outres[d.provider_config] = [] if outres[d.provider_config].nil?
+      rec = outres[d.provider_config]
 
       de = Ccrypto::AlgoFactory.engine(d)
       expect(de).not_to be nil
@@ -26,6 +42,12 @@ RSpec.describe "Digest Engine for Ruby" do
       expect(res2 == res).to be true
 
       hres = de.digest("password", :hex)
+      if hasResult
+        expect(rec[0] == hres).to be true
+      else
+        rec << hres
+      end
+
       de.reset
       de.digest_update("pass")
       de.digest_update("word")
@@ -34,6 +56,11 @@ RSpec.describe "Digest Engine for Ruby" do
 
       de.reset
       bres = de.digest("password",:b64)
+      if hasResult
+        expect(rec[1] == bres.strip).to be true
+      else
+        rec << bres.strip
+      end
       de.reset
       de.digest_update("pas")
       de.digest_update("sword")
@@ -42,6 +69,13 @@ RSpec.describe "Digest Engine for Ruby" do
     end
 
     expect { Ccrypto::AlgoFactory.engine(Ccrypto::HARAKA256) }.to raise_exception(Ccrypto::DigestEngineException)
+
+    if not hasResult
+      File.open("digest_result.yml", "w") do |f|
+        f.write YAML.dump(outres)
+      end
+      puts " *** digest result stored at '#{File.join(Dir.getwd, "digest_result.yml")}'"
+    end
 
   end
 

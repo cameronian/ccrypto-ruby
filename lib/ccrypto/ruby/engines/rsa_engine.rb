@@ -204,6 +204,15 @@ module Ccrypto
         @config.private_key.private_decrypt(enc, padVal)
       end
 
+      def self.supported_keysizes
+        [
+          Ccrypto::RSAConfig.new(1024, Ccrypto::KeypairConfig::Algo_NotRecommended), 
+          Ccrypto::RSAConfig.new(2048, Ccrypto::KeypairConfig::Algo_Active, true), 
+          Ccrypto::RSAConfig.new(4096), 
+          Ccrypto::RSAConfig.new(8192)
+        ] 
+      end
+
 
 
       #####################

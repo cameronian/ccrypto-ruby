@@ -136,6 +136,7 @@ module Ccrypto
 
         cipher = "AES-256-CBC" if is_empty?(cipher)
 
+        teLogger.debug "Setting P7 encryption cipher #{cipher}"
         cip = OpenSSL::Cipher.new(cipher)
 
         begin
