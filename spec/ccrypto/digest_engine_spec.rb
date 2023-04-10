@@ -23,16 +23,20 @@ RSpec.describe "Digest Engine for Ruby" do
     s2 = Ccrypto::AlgoFactory.engine(Ccrypto::DigestConfig)
     expect(s2).not_to be nil
 
-    s2.supported.each do |d|
-      puts "Testing algo #{d.provider_config}"
-      outres[d.provider_config] = [] if outres[d.provider_config].nil?
-      rec = outres[d.provider_config]
+    s2.supported.each do |k,d|
 
-      de = Ccrypto::AlgoFactory.engine(d)
+      dd = s2.find_digest_config(k)
+
+      puts "Testing algo #{dd.provider_config}"
+      rec = outres[dd.provider_config[:algo_name]]
+
+      de = Ccrypto::AlgoFactory.engine(dd)
       expect(de).not_to be nil
 
       res = de.digest("password")
-      expect(res.length == d.outBitLength/8).to be true
+      p res
+      p dd.outByteLength
+      expect(res.length == dd.outByteLength).to be true
 
       de.reset
 
@@ -68,8 +72,6 @@ RSpec.describe "Digest Engine for Ruby" do
       expect(bres2 == bres).to be true
     end
 
-    expect { Ccrypto::AlgoFactory.engine(Ccrypto::HARAKA256) }.to raise_exception(Ccrypto::DigestEngineException)
-
     if not hasResult
       File.open("digest_result.yml", "w") do |f|
         f.write YAML.dump(outres)
@@ -84,7 +86,7 @@ RSpec.describe "Digest Engine for Ruby" do
     de = Ccrypto::AlgoFactory.engine(Ccrypto::DigestConfig)
     expect(de).not_to be nil
 
-    dde = de.digest(:sha256)
+    dde = de.instance(:sha256)
     data1 = "Testing"
     data2 = "12345667"
 

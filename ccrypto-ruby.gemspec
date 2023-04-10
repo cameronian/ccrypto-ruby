@@ -33,16 +33,17 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'teLogger'
   spec.add_dependency 'toolrack'
 
-  spec.add_dependency 'ccrypto' , "~> 0.1.3"
+  #spec.add_dependency 'ccrypto' , "~> 0.1.3"
 
   spec.add_dependency 'ed25519'
   spec.add_dependency 'x25519'
 
-  spec.add_development_dependency 'devops_assist'
+  #spec.add_development_dependency 'devops_assist'
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"
 
   # For more information and examples about making a new gem, checkout our
   # guide at: https://bundler.io/guides/creating_gem.html
+  spec.add_development_dependency 'release-gem'
 end

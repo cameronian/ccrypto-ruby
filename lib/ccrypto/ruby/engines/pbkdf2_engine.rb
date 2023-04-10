@@ -40,16 +40,7 @@ module Ccrypto
 
       private
       def init_digest(algo)
-        if DigestEngine.is_supported?(algo)
-          conf = DigestEngine.engineKeys[algo]
-          if not_empty?(conf)
-            OpenSSL::Digest.new(conf.provider_config)
-          else
-            raise DigestEngineException, "Algo config '#{algo}' not found"
-          end
-        else
-          raise DigestEngineException, "Digest algo '#{algo}' is not supported"
-        end
+        DigestEngine.instance(algo).native_instance
       end
 
       def default_digest

@@ -157,8 +157,11 @@ module Ccrypto
       end
 
       def self.supported_cipher_list
-        supported_ciphers if Ccrypto::SupportedCipherList.instance.algo_count == 0
-        Ccrypto::SupportedCipherList.instance
+        if Ccrypto::SupportedCipherList.instance.algo_count == 0
+          []
+        else
+          Ccrypto::SupportedCipherList.instance
+        end
       end
 
       def self.is_supported_cipher?(c)

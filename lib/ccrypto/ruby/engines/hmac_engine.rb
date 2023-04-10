@@ -15,11 +15,9 @@ module Ccrypto
         raise HMACEngineException, "Signing key is required" if is_empty?(@config.key)
         raise HMACEngineException, "Secret key as signing key is required. Given #{@config.key.class}" if not @config.key.is_a?(Ccrypto::SecretKey)
 
-        raise HMACEngineException, "Digest '#{@config.digest}' is not supported" if not DigestEngine.is_supported?(@config.digest)
-       
-        dig = DigestEngine.digest(@config.digest)
+        dig = DigestEngine.instance(@config.digest).native_instance
 
-        @hmac = OpenSSL::HMAC.new(@config.key.to_bin, dig.native_digest_engine)
+        @hmac = OpenSSL::HMAC.new(@config.key.to_bin, dig)
 
       end
 

@@ -1,8 +1,17 @@
+GIT
+  remote: ccrypto
+  revision: 92ce49ed7bcdbb1b95ae62787e2c88c2f14ae96b
+  branch: main
+  specs:
+    ccrypto (0.1.3)
+      activesupport
+      teLogger
+      toolrack
+
 PATH
   remote: .
   specs:
-    ccrypto-ruby (0.1.1)
-      ccrypto (~> 0.1.3)
+    ccrypto-ruby (0.1.2)
       ed25519
       teLogger
       toolrack
@@ -16,30 +25,16 @@ GEM
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
-    ccrypto (0.1.3)
-      activesupport
-      teLogger
-      toolrack
+    colorize (0.8.1)
     concurrent-ruby (1.2.2)
-    devops_assist (0.3.11)
-      git_cli
-      git_cli_prompt (~> 0.3.3)
-      gvcs
-      teLogger
-      toolrack
-      tty-prompt
     diff-lcs (1.5.0)
     ed25519 (1.3.0)
-    git_cli (0.11.2)
+    git_cli (0.11.4)
       gvcs
       ptools (~> 1.4.0)
       teLogger
       toolrack
-    git_cli_prompt (0.3.4)
-      teLogger
-      toolrack
-      tty-prompt
-    gvcs (0.1.1)
+    gvcs (0.1.2)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
     minitest (5.18.0)
@@ -47,6 +42,14 @@ GEM
       tty-color (~> 0.5)
     ptools (1.4.3)
     rake (13.0.6)
+    release-gem (0.1.15)
+      colorize
+      git_cli
+      gvcs
+      teLogger
+      toolrack
+      tty-command
+      tty-prompt
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -61,8 +64,10 @@ GEM
       rspec-support (~> 3.12.0)
     rspec-support (3.12.0)
     teLogger (0.2.2)
-    toolrack (0.21.0)
+    toolrack (0.22.1)
     tty-color (0.6.0)
+    tty-command (0.10.1)
+      pastel (~> 0.8)
     tty-cursor (0.7.1)
     tty-prompt (0.23.1)
       pastel (~> 0.8)
@@ -82,9 +87,10 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  ccrypto!
   ccrypto-ruby!
-  devops_assist
   rake (~> 13.0)
+  release-gem
   rspec (~> 3.0)
 
 BUNDLED WITH

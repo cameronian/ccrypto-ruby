@@ -11,98 +11,80 @@ module Ccrypto
 
       teLogger_tag :r_digest
       
-      SupportedDigest = [
-        Ccrypto::SHA1.provider_info("sha1"),
-        Ccrypto::SHA224.provider_info("sha224"),
-        Ccrypto::SHA256.provider_info("sha256"),
-        Ccrypto::SHA384.provider_info("sha384"),
-        Ccrypto::SHA512.provider_info("sha512"),
-        Ccrypto::SHA512_224.provider_info("sha512-224"),
-        Ccrypto::SHA512_256.provider_info("sha512-256"),
-        Ccrypto::SHA3_224.provider_info("sha3-224"),
-        Ccrypto::SHA3_256.provider_info("sha3-256"),
-        Ccrypto::SHA3_384.provider_info("sha3-384"),
-        Ccrypto::SHA3_512.provider_info("sha3-512"),
-        Ccrypto::SHAKE128.provider_info("shake128"),
-        Ccrypto::SHAKE256.provider_info("shake256"),
-        Ccrypto::BLAKE2b512.provider_info("BLAKE2b512"),
-        Ccrypto::BLAKE2s256.provider_info("BLAKE2s256"),
-        Ccrypto::SM3.provider_info("SM3")
-        # deprecated starting OpenSSL v3.0
-        #Ccrypto::RIPEMD160.provider_info("RIPEMD160"),
-        #Ccrypto::WHIRLPOOL.provider_info("whirlpool")
-      ]
+      #SupportedDigest = {
+      #  sha1: Ccrypto::DigestConfig.new(:sha1, 160).provider_info("sha1"),
+      #  Ccrypto::SHA224.provider_info("sha224"),
+      #  Ccrypto::SHA256.provider_info("sha256"),
+      #  Ccrypto::SHA384.provider_info("sha384"),
+      #  Ccrypto::SHA512.provider_info("sha512"),
+      #  Ccrypto::SHA512_224.provider_info("sha512-224"),
+      #  Ccrypto::SHA512_256.provider_info("sha512-256"),
+      #  Ccrypto::SHA3_224.provider_info("sha3-224"),
+      #  Ccrypto::SHA3_256.provider_info("sha3-256"),
+      #  Ccrypto::SHA3_384.provider_info("sha3-384"),
+      #  Ccrypto::SHA3_512.provider_info("sha3-512"),
+      #  Ccrypto::SHAKE128.provider_info("shake128"),
+      #  Ccrypto::SHAKE256.provider_info("shake256"),
+      #  Ccrypto::BLAKE2b512.provider_info("BLAKE2b512"),
+      #  Ccrypto::BLAKE2s256.provider_info("BLAKE2s256"),
+      #  Ccrypto::SM3.provider_info("SM3")
+      #  # deprecated starting OpenSSL v3.0
+      #  #Ccrypto::RIPEMD160.provider_info("RIPEMD160"),
+      #  #Ccrypto::WHIRLPOOL.provider_info("whirlpool")
+      #}
 
 
       def self.supported
-        SupportedDigest
+        if @supportedConf.nil?
+          @supportedConf = {}
+          supported_digest_symbols.each do |d|
+            begin
+              teLogger.debug "Checking digest  : #{d}"
+              name = d.to_s.gsub("_","-")
+              md = OpenSSL::Digest.new(name)
+              dig = Ccrypto::DigestConfig.new(:sha1, md.digest_length*8, { provider_config: { algo_name: name } })
+
+              @supportedConf[d] = dig 
+              @supportedConf[name] = dig
+
+            rescue Exception => ex
+              p ex
+            end
+          end
+        end
+        @supportedConf
       end
 
-      def self.is_supported?(eng)
+      def self.supported_digest_symbols
+        # no way as of OpenSSL 3.1.2 to return a list of supported digest algo... So manually fix the list
+        [:sha1, :sha224, :sha256, :sha384, :sha512, :sha512_224, :sha512_256, :sha3_256, :sha3_384, :sha3_512, :shake128, :shake256, :blake2b512, :blake2s256, :sm3]
+      end
+        
+      def self.is_digest_supported?(eng)
+        not find_digest_config(eng).nil?
+      end
 
-        case eng
+      def self.find_digest_config(key)
+        case key
         when Ccrypto::DigestConfig
-          SupportedDigest.include?(eng) 
+          key
         when String, Symbol
-          if eng.is_a?(Symbol)
-            engineKeys.include?(eng)
-          else
-            e = eng.gsub("-","_")
-            engineKeys.include?(e.to_sym)
-          end
-        else
-          raise DigestEngineException, "Unknown engine '#{eng}'"
+          supported[key]
         end
-
       end
 
       def self.instance(*args, &block)
         conf = args.first
-        if not_empty?(conf.provider_config)
-          teLogger.debug "Creating digest engine #{conf.provider_config}"
-          DigestEngine.new(OpenSSL::Digest.new(conf.provider_config))
-        else
-          raise DigestEngineException, "Given digest config #{conf.algo} does not have provider key mapping. Most likely this config is not supported by provider #{Ccrypto::Ruby::Provider.provider_name}"
-        end
+        digEng = find_digest_config(conf)
+        raise DigestEngineException, "Unsupported digest instance '#{conf}'" if digEng.nil?
+
+        DigestEngine.new(OpenSSL::Digest.new(digEng.provider_config[:algo_name]))
       end
 
-      def self.digest(key)
 
-        case key
-        when Ccrypto::DigestConfig
-          DigestEngine.new(OpenSSL::Digest.new(key.provider_config))
-        when String, Symbol
-          if key.is_a?(Symbol)
-            res = engineKeys[key]
-          else
-            k = key.gsub("-","_")
-            res = engineKeys[k.to_sym]
-          end
-
-          if is_empty?(res)
-            teLogger.debug "No digest available for #{key}"
-            raise DigestEngineException, "Not supported digest engine #{key}"
-          else
-            teLogger.debug "Found digest #{key.to_sym}"
-            DigestEngine.new(OpenSSL::Digest.new(res.provider_config))
-          end
-
-        else
-          raise DigestEngineException, "Not supported digest engine #{key}"
-        end
-        
-      end
-
-      def self.engineKeys
-        if @engineKeys.nil?
-          @engineKeys = {}
-          supported.map do |e|
-            @engineKeys[e.algo.to_sym] = e
-          end
-        end
-        @engineKeys
-      end
-
+      ## 
+      # Instance variable
+      ##
       def initialize(inst)
         @inst = inst
       end

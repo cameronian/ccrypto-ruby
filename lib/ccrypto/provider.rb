@@ -33,6 +33,9 @@ require_relative 'ruby/engines/pkcs7_engine'
 
 require_relative 'ruby/engines/rsa_engine'
 
+require 'openssl'
+require 'rbconfig'
+
 module Ccrypto
   module Ruby
 
@@ -50,7 +53,21 @@ module Ccrypto
     class Provider
 
       def self.provider_name
-        "ruby"
+        nm = []
+        nm << "Ruby : "
+        provider_info.each do |k,v|
+          nm << "#{k.to_s.capitalize} : #{v}"
+        end
+        nm.join("\n")
+      end
+
+      def self.provider_info
+        info = {}
+        info[:ruby_version_name] = RbConfig::CONFIG["RUBY_VERSION_NAME"]
+        info[:ruby_version] = RbConfig::CONFIG["RUBY_PROGRAM_VERSION"]
+        info[:ruby_api_version] = RbConfig::CONFIG["RUBY_API_VERSION"]
+        info[:openssl_version] = OpenSSL::VERSION
+        info
       end
 
       def self.supported_keypair_config(purpose = :signing, &block)
